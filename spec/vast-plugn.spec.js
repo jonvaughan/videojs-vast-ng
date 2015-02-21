@@ -1,3 +1,4 @@
+(function () {
 "use strict";
 
 describe('videojs.vast plugin', function() {
@@ -71,7 +72,7 @@ describe('videojs.vast plugin', function() {
 
     it("should bail out if no url is provided", function() {
       this.p.ads();
-      var result = this.p.vast({});
+      this.p.vast({});
       spyOn(this.p, "trigger").and.callThrough();
       this.p.trigger('readyforpreroll');
       expect(this.p.trigger).toHaveBeenCalledWith("adscanceled");
@@ -240,3 +241,5 @@ describe('videojs.vast plugin', function() {
     });
   });
 });
+
+}());

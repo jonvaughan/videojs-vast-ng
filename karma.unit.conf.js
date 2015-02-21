@@ -1,7 +1,7 @@
 module.exports = function(config) {
   config.set({
     frameworks: ['jasmine'],
-    browsers: ['Chrome'],
+    browsers: ['PhantomJS'],
 
     basePath: '',
 
@@ -10,7 +10,7 @@ module.exports = function(config) {
       'bower_components/videojs/dist/video-js/video.dev.js',
       'bower_components/videojs-contrib-ads/src/videojs.ads.js',
       'videojs.vast.js',
-      'spec/*.js',
+      'spec/*.spec.js',
 
       // Feed fixtures
       { pattern: 'spec/*.xml', watched: true, served:  true, included: false },

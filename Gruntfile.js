@@ -1,62 +1,62 @@
-'use strict';
+module.exports = function(grunt) {
+  'use strict';
 
-var specs = "spec/*Spec.js",
-    helpers = "spec/*Helpers.js";
-
-var _ = require('lodash');
-
-var gruntConfig = {
-  env: {
-    // dynamically filled
-  },
-  jshint: {
-    ignore_warning: {
+  var gruntConfig = {
+    jshint: {
       options: {
-        '-W083': true,
+        jshintrc: '.jshintrc'
       },
-      src: ['videojs.vast.js', specs],
-    }, 
-  },
-  // jasmine: {
-  //   src: 'videojs.vast.js',
-  //   options: {
-  //     specs: specs,
-  //     helpers: helpers,
-  //     vendor: [
-  //       "http://vjs.zencdn.net/4.4.3/video.js",
-  //       "bower_components/videojs-contrib-ads/src/videojs.ads.js",
-  //       "lib/vast-client.js"
-  //     ]
-  //   }
-  // },
-  karma: {
-    unit: {
-      configFile: 'karma.conf.js'
-    }
-  },
-  coveralls: {
-    options: {
-      coverage_dir: './coverage',
-      force: true,
-      recursive: true
-    }
-  },
-  connect: {
-    server: {
+      src: ['Gruntfile.js', 'videojs.vast.js'],
+      test: ['spec/*.js']
+    },
+    karma: {
+      unit: {
+        configFile: 'karma.unit.conf.js',
+        autoWatch: false,
+        singleRun: true
+      },
+      e2e: {
+        configFile: 'karma.e2e.conf.js',
+        autoWatch: false,
+        singleRun: true
+      },
+      dev: {
+        configFile: 'karma.e2e.conf.js',
+        autoWatch: true,
+        singleRun: false
+      }
+    },
+    coveralls: {
       options: {
-        keepalive: true
+        coverage_dir: './coverage',
+        force: true,
+        recursive: true
+      }
+    },
+    connect: {
+      server: {
+        options: {
+          keepalive: true
+        }
+      }
+    },
+    watch: {
+      scripts: {
+        files: ['*.js', 'spec/*.js'],
+        tasks: ['jshint', 'jasmine']
+      },
+    },
+    'curl-dir': {
+      'spec-files': {
+        src: [
+          'http://techslides.com/demos/sample-videos/small.mp4',
+          'http://techslides.com/demos/sample-videos/small.webm'
+        ],
+        dest: 'spec/files'
       }
     }
-  },
-  watch: {
-    scripts: {
-      files: ['*.js', 'spec/*.js'],
-      tasks: ['jshint', 'jasmine']
-    },
-  }
-};
+  };
 
-module.exports = function(grunt) {
   grunt.initConfig(gruntConfig);
 
   grunt.loadNpmTasks('grunt-env');
@@ -64,14 +64,9 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-watch');
   grunt.loadNpmTasks('grunt-contrib-connect');
   grunt.loadNpmTasks('grunt-concurrent');
+  grunt.loadNpmTasks('grunt-curl');
   grunt.loadNpmTasks('grunt-karma-coveralls');
   grunt.loadNpmTasks('grunt-karma');
 
-  grunt.registerTask('default', ['test:sauce:' + _(desireds).keys().first()]);
-
-  _(desireds).each(function(desired, key) {
-    grunt.registerTask('test:sauce:' + key, ['env:' + key, 'simplemocha:sauce']);
-  });
-
-  grunt.registerTask('default', ['jshint', 'karma']);
+  grunt.registerTask('default', ['jshint', 'curl-dir:spec-files', 'karma:unit']);
 };
