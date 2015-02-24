@@ -35,10 +35,6 @@ describe('videojs.vast plugin', function() {
       }
     })();
     player = videojs(id);
-    // player.ads();
-    // player.vast({
-    //   url: ""
-    // });
   });
 
 

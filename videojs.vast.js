@@ -253,9 +253,9 @@
     }
 
     function updateSeeker(vpaidSeeker) {
-      if (!vpaidObj && vpaidTrackInterval !== -1) { //might be it was shutdown earlier than first seek could appear. Silently remove itself
+      if (!vpaidObj && vpaidTrackInterval) { //might be it was shutdown earlier than first seek could appear. Silently remove itself
         clearInterval(vpaidTrackInterval);
-        vpaidTrackInterval = -1;
+        vpaidTrackInterval = null;
         return;
       }
       var remaining = vpaidObj.getAdRemainingTime();
@@ -278,6 +278,41 @@
       var remains = remainingMinutes + ':' + remainingSeconds;
       progress.innerHTML = '<span class="vjs-control-text">' + remains + '</span>';
       vpaidSeeker.querySelector('.vast-ad-left').innerHTML = remains;
+    }
+
+    function sourceContainsJavascriptVPAID(sources) {
+      for(var i=0; i<sources.length; i++) {
+        if (sources[i].type === 'application/javascript') {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    function sourceContainsFlashVPAID(sources) {
+      for(var i=0; i<sources.length; i++) {
+        if (sources[i].type === 'application/x-shockwave-flash') {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    //Find optimal available VPAID tech. Best match is javascript, otherwise last found will be returned
+    function firstSupportedJavascriptVPAIDMediaFile(mediaFiles) {
+      for (var i = 0; i < mediaFiles.length; i++) {
+        var mf = mediaFiles[i];
+
+        if (mf.apiFramework === "VPAID" && mf.mimeType === 'application/javascript') {
+          return mf;
+        }
+      }
+
+      console.warn('vast-plugin', 'firstSupportedJavascriptVPAIDMediaFile', 'application/javascript mime type not found');
+
+      return null;
     }
 
     function init(vpaidMediaFile, vpaidPlayer, adLoadedCallback) {
@@ -334,7 +369,7 @@
       });
     }
 
-    function dispose() {
+    function destory() {
       if (vpaidObj) {
         for (var event in vpaidListeners) {
           if (!vpaidListeners.hasOwnProperty(event)) {
@@ -356,26 +391,14 @@
     return {
       init: init,
       vpaid: vpaidObj,
+      sourceContainsFlashVPAID: sourceContainsFlashVPAID,
+      sourceContainsJavascriptVPAID: sourceContainsJavascriptVPAID,
+      firstSupportedJavascriptVPAIDMediaFile: firstSupportedJavascriptVPAIDMediaFile,
       vpaidTrackInterval: vpaidTrackInterval,
       updateSeeker: updateSeeker,
-      dispose: dispose
+      destory: destory
     };
   }; // end VPAIDClient
-
-  //Find optimal available VPAID tech. Best match is javascript, otherwise last found will be returned
-  function firstSupportedVPAIDMediaFile(mediaFiles) {
-    for (var i = 0; i < mediaFiles.length; i++) {
-      var mf = mediaFiles[i];
-
-      if (mf.apiFramework === "VPAID" && mf.mimeType === 'application/javascript') {
-        return mf;
-      }
-    }
-
-    console.warn('vast-plugin', 'firstSupportedVPAIDMediaFile', 'application/javascript mime type not found');
-
-    return null;
-  }
 
   function createSourceObjects(mediaFiles, techOrder) {
     var sourcesByFormat = {}, i, j, t, techName, tech, sbf;
@@ -515,7 +538,7 @@
           for (var i = 0; i < response.ads.length; i++) {
             var ad = response.ads[i];
             var vpaidMediaFile;
-            var foundCreative = false, foundCompanion = false, foundVPAID = false, foundVAST = false;
+            var foundCreative = false, foundCompanion = false, foundJavascriptVPAID = false, foundVAST = false;
             for (var j = 0; j < ad.creatives.length && (!foundCreative || !foundCompanion); j++) {
               var creative = ad.creatives[j];
 
@@ -541,12 +564,11 @@
                     foundVAST = true;
                   } else {
                     // try to find a VPAID media file
-                    vpaidMediaFile = firstSupportedVPAIDMediaFile(creative.mediaFiles);
-
-                    foundVPAID = !!vpaidMediaFile;
+                    vpaidMediaFile = vpaidClient.firstSupportedJavascriptVPAIDMediaFile(creative.mediaFiles);
+                    foundJavascriptVPAID = !!vpaidMediaFile;
                   }
 
-                  foundCreative = foundVAST || foundVPAID;
+                  foundCreative = foundVAST || foundJavascriptVPAID;
 
                   break;
 
@@ -569,7 +591,7 @@
               }
             }
 
-            if (foundVPAID) {
+            if (foundJavascriptVPAID) {
               console.debug('vast-plugin', 'requestAd', 'found VPAID');
               vpaidPlayer = getOrCreateVPAIDPlayer();
               vpaidClient.init(vpaidMediaFile, vpaidPlayer, vpaidClientReady);
@@ -650,66 +672,74 @@
       // load linear ad sources and start playing them
       player.src(player.vast.sources);
 
-      var clickthrough;
-      if (vastTracker.clickThroughURLTemplate) {
-        clickthrough = dmvast.util.resolveURLTemplates(
-          [vastTracker.clickThroughURLTemplate],
-          {
-            CACHEBUSTER: Math.round(Math.random() * 1.0e+10),
-            CONTENTPLAYHEAD: vastTracker.progressFormated()
+      if (!vpaidClient.sourceContainsFlashVPAID(player.vast.sources)) {
+        var clickthrough;
+        if (vastTracker.clickThroughURLTemplate) {
+          clickthrough = dmvast.util.resolveURLTemplates(
+            [vastTracker.clickThroughURLTemplate],
+            {
+              CACHEBUSTER: Math.round(Math.random() * 1.0e+10),
+              CONTENTPLAYHEAD: vastTracker.progressFormated()
+            }
+          )[0];
+        }
+        var blocker = window.document.createElement("a");
+        blocker.className = "vast-blocker";
+        blocker.href = clickthrough || "#";
+        blocker.target = "_blank";
+        blocker.onclick = function() {
+          console.info('vast-plugin', 'preroll', 'clicked');
+          if (player.paused()) {
+            console.debug('vast-plugin', 'blocker', 'click');
+            player.play();
+            return false;
           }
-        )[0];
+          var clicktrackers = vastTracker.clickTrackingURLTemplate;
+          if (clicktrackers) {
+            vastTracker.trackURLs([clicktrackers]);
+          }
+          player.trigger("adclick");
+        };
+        player.vast.blocker = blocker;
+        player.el().insertBefore(blocker, player.controlBar.el());
+
+        var skipButton = window.document.createElement("div");
+        skipButton.className = "vast-skip-button";
+        if (settings.skip < 0) {
+          skipButton.style.display = "none";
+        }
+        player.vast.skipButton = skipButton;
+        player.el().appendChild(skipButton);
+
+        player.on("timeupdate", player.vast.timeupdate);
+
+        skipButton.onclick = function(e) {
+          if((' ' + player.vast.skipButton.className + ' ').indexOf(' enabled ') >= 0) {
+            vastTracker.skip();
+            player.vast.tearDown();
+          }
+          if(window.Event.prototype.stopPropagation !== undefined) {
+            e.stopPropagation();
+          } else {
+            return false;
+          }
+        };
+
+        setupVASTEvents(vastTracker);
+
+        player.one('ended', player.vast.tearDown);
+
       }
-      var blocker = window.document.createElement("a");
-      blocker.className = "vast-blocker";
-      blocker.href = clickthrough || "#";
-      blocker.target = "_blank";
-      blocker.onclick = function() {
-        console.info('vast-plugin', 'preroll', 'clicked');
-        if (player.paused()) {
-          console.debug('vast-plugin', 'blocker', 'click');
-          player.play();
-          return false;
-        }
-        var clicktrackers = vastTracker.clickTrackingURLTemplate;
-        if (clicktrackers) {
-          vastTracker.trackURLs([clicktrackers]);
-        }
-        player.trigger("adclick");
-      };
-      player.vast.blocker = blocker;
-      player.el().insertBefore(blocker, player.controlBar.el());
 
-      var skipButton = window.document.createElement("div");
-      skipButton.className = "vast-skip-button";
-      if (settings.skip < 0) {
-        skipButton.style.display = "none";
-      }
-      player.vast.skipButton = skipButton;
-      player.el().appendChild(skipButton);
-
-      player.on("timeupdate", player.vast.timeupdate);
-
-      skipButton.onclick = function(e) {
-        if((' ' + player.vast.skipButton.className + ' ').indexOf(' enabled ') >= 0) {
-          vastTracker.skip();
-          player.vast.tearDown();
-        }
-        if(window.Event.prototype.stopPropagation !== undefined) {
-          e.stopPropagation();
-        } else {
-          return false;
-        }
-      };
-
-      setupVASTEvents(vastTracker);
-
-      player.one('ended', player.vast.tearDown);
+      player.one('AdStopped', function() {
+        console.debug('vast-plugin', 'AdStopped');
+        player.vast.tearDown();
+      });
 
       player.trigger('vast-preroll-ready');
     }
 
-    function prerollVPAID(vpaid) {
+    function prerollJavascriptVPAID(vpaid) {
       player.ads.startLinearAdMode();
       showContentControls = player.controls();
       if (showContentControls) {
@@ -717,6 +747,16 @@
       }
       vpaid.startAd();
       vpaidTrackInterval = setInterval(function() { vpaidClient.updateSeeker(vpaidSeeker); }, 500);
+    }
+
+    function preroll(sources) {
+      if (player.vast.sources && !vpaidClient.sourceContainsJavascriptVPAID(player.vast.sources)) {
+        console.info('VAST source!');
+        prerollVAST(player.vastTracker);
+      } else {
+        console.info('VPAID source!');
+        prerollJavascriptVPAID(player.vpaid);
+      }
     }
 
     function tearDown() {
@@ -764,8 +804,8 @@
       console.debug('vast-plugin', 'tearDown', 'removeVPAIDControls');
       removeVPAIDControls();
 
-      console.debug('vast-plugin', 'tearDown', 'vpaidClient dispose');
-      vpaidClient.dispose();
+      console.debug('vast-plugin', 'tearDown', 'vpaidClient destory');
+      vpaidClient.destory();
 
       if (player.vast.sources) {
         player.vast.sources = null;
@@ -863,9 +903,7 @@
 
       tearDown: tearDown,
 
-      prerollVAST: prerollVAST,
-
-      prerollVPAID: prerollVPAID,
+      preroll: preroll,
 
       timeupdate: timeupdate
     };
@@ -915,12 +953,10 @@
         return;
       }
 
+      console.info('sources', player.vast.sources);
+
       // set up and start playing preroll
-      if (player.vast.sources) {
-        player.vast.prerollVAST(player.vastTracker);
-      } else {
-        player.vast.prerollVPAID(player.vpaid);
-      }
+      player.vast.preroll();
     });
 
     // return player to allow this plugin to be chained
