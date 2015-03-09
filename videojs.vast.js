@@ -110,30 +110,30 @@
       return false;
     };
 
-    var _setupVASTEvents = function() {
+    var _setupTrackerEvents = function() {
       var
         errorOccurred = false,
         t = _tracker,
         canplayFn = function(e) {
-          console.warn('vast', 'setupVASTEvents', 'canplay', e);
+          console.warn('vast', '_setupTrackerEvents', 'canplay', e);
           _tracker.load();
         },
         timeupdateFn = function() {
-          if (isNaN(_tracker.assetDuration)) {
+          if (isNaN(t.assetDuration)) {
             t.assetDuration = _player.duration();
           }
           t.setProgress(_player.currentTime());
         },
         pauseFn = function(e) {
-          console.warn('vast', 'setupVASTEvents', 'pause', e);
+          console.warn('vast', '_setupTrackerEvents', 'pause', e);
           t.setPaused(true);
           _player.one('play', function() {
-            console.log('vast', 'setupVASTEvents', 'pauseFn', 'play');
+            console.log('vast', '_setupTrackerEvents', 'pauseFn', 'play');
             t.setPaused(false);
           });
         },
         errorFn = function(e) {
-          console.warn('vast', 'setupVASTEvents', 'error', e);
+          console.warn('vast', '_setupTrackerEvents', 'error', e);
           // Inform ad server we couldn't play the media file for this ad
           dmvast.util.track(t.ad.errorURLTemplates, {ERRORCODE: 405});
           errorOccurred = true;
@@ -145,11 +145,12 @@
       _player.on('pause', pauseFn);
       _player.on('error', errorFn);
 
-      _player.one('vast-preroll-removed', function() {
+      _player.one('adend', function() {
         _player.off('canplay', canplayFn);
         _player.off('timeupdate', timeupdateFn);
         _player.off('pause', pauseFn);
         _player.off('error', errorFn);
+
         if (!errorOccurred) {
           t.complete();
         }
@@ -158,11 +159,6 @@
 
     var _addBlocker = function() {
       var clickthrough;
-
-      if (!_tracker) {
-        console.error('vast', '_addBlocker', 'cannot add blocker because tracker is null!');
-        return;
-      }
 
       if (_tracker.clickThroughURLTemplate) {
         clickthrough = dmvast.util.resolveURLTemplates(
@@ -174,25 +170,54 @@
         )[0];
       }
 
+      // add blocker
       _blockerEl = videojs.Component.prototype.createEl('a', {
         className: 'vast-blocker',
         href: clickthrough || "#",
         target: '_blank',
         onclick: function() {
-          console.info('vast', 'preroll', 'clicked');
+          console.info('vast', 'block', 'clicked');
           if (_player.paused()) {
-            console.debug('vast', 'blocker', 'click');
             _player.play();
             return false;
           }
-          var clicktrackers = _tracker.clickTrackingURLTemplate;
-          if (clicktrackers) {
-            _tracker.trackURLs([clicktrackers]);
+
+          if (_tracker.clickTrackingURLTemplate) {
+            _tracker.trackURLs([_tracker.clickTrackingURLTemplate]);
           }
+
           _player.trigger('adclick');
+
+          if (!clickthrough) {
+            if(window.Event.prototype.stopPropagation !== undefined) {
+              e.stopPropagation();
+            } else {
+              return false;
+            }
+          }
         }
       });
+
       videojs.insertFirst(_blockerEl, _playerEl);
+    };
+
+    var _removeBlocker = function() {
+      // remove blocker
+      if (!_blockerEl || !_blockerEl.parentNode) {
+        console.info('vast', 'remove', 'no blocker found:', _blockerEl);
+        return;
+      }
+
+      _blockerEl.parentNode.removeChild(_blockerEl);
+      _blockerEl = null;
+    };
+
+    var _addSkipBtn = function() {
+      // add skip button
+      if (options.skip < 0) {
+        console.info('vast', 'init ui', 'skip < 0, disabling skip button');
+        return;
+      }
 
       _skipBtn = videojs.Component.prototype.createEl('div', {
         className: 'vast-skip-button',
@@ -209,21 +234,42 @@
         }
       });
 
-      if (options.skip < 0) {
-        _skipBtn.style.display = 'none';
-      }
-
       videojs.insertFirst(_skipBtn, _playerEl);
 
-      _player.on('timeupdate', _player.vast.timeupdate);
+      _player.on('timeupdate', _updateSkipBtn);
+    };
 
-      _setupVASTEvents();
+    var _removeSkipBtn = function() {
+      // remove skip button
+      if (!_skipBtn || !_skipBtn.parentNode) {
+        console.info('vast', 'remove', 'no skip button found:', _skipBtn);
+        return;
+      }
 
-      _player.one('ended', _player.vast.remove);
+      _skipBtn.parentNode.removeChild(_skipBtn);
+      _skipBtn = null;
+
+      _player.off('timeupdate', _updateSkipBtn);
     }
 
-    _player.vast.preroll = function() {
-      console.debug('vast', 'preroll');
+    var _updateSkipBtn = function() {
+      // TODO: check if this is required
+      _player.loadingSpinner.el().style.display = "none";
+
+      var timeLeft = Math.ceil(options.skip - _player.currentTime());
+
+      if(timeLeft > 0) {
+        _skipBtn.innerHTML = "Skip in " + timeLeft + "...";
+      } else {
+        if((' ' + _skipBtn.className + ' ').indexOf(' enabled ') === -1) {
+          _skipBtn.className += " enabled";
+          _skipBtn.innerHTML = "Skip";
+        }
+      }
+    };
+
+    var _startAd = function() {
+      console.debug('vast', 'startAd');
 
       _player.ads.startLinearAdMode();
       _showContentControls = _player.controls();
@@ -235,27 +281,20 @@
       // load linear ad sources and start playing them
       _player.src(_sources);
 
-      if (!_sourceContainsVPAID(_sources)) {
+
+      if (_tracker && !_sourceContainsVPAID(_sources)) {
         _addBlocker();
+        _addSkipBtn();
       }
 
-      _player.trigger('vast-preroll-ready');
+      _setupTrackerEvents();
+
+      _player.one('ended', _player.vast.remove);
+
+      _player.play();
     };
 
-    _player.vast.timeupdate = function() {
-      _player.loadingSpinner.el().style.display = "none";
-      var timeLeft = Math.ceil(options.skip - _player.currentTime());
-      if(timeLeft > 0) {
-        _skipBtn.innerHTML = "Skip in " + timeLeft + "...";
-      } else {
-        if((' ' + _skipBtn.className + ' ').indexOf(' enabled ') === -1) {
-          _skipBtn.className += " enabled";
-          _skipBtn.innerHTML = "Skip";
-        }
-      }
-    };
-
-    _player.vast.create = function() {
+    _player.vast.preroll = function() {
 
       if (!options.url) {
         _player.trigger('adscanceled');
@@ -264,7 +303,7 @@
 
       // query vast url given in options
       dmvast.client.get(options.url, function(response) {
-        console.warn('vast', 'create', 'response', response);
+        console.warn('vast', 'preroll', 'response', response);
         if (response) {
           // TODO: Rework code to utilize multiple ADs
 
@@ -279,18 +318,18 @@
                 case 'linear':
 
                   if (foundCreative) {
-                    console.warn('vast', 'create', 'ignoring linear; already found one');
+                    console.warn('vast', 'preroll', 'ignoring linear; already found one');
                     continue;
                   }
 
                   if (!creative.mediaFiles.length) {
-                    console.warn('vast', 'create', 'ignoring linear; no media files found');
+                    console.warn('vast', 'preroll', 'ignoring linear; no media files found');
                     continue;
                   }
 
                   _tracker = new dmvast.tracker(ad, creative);
 
-                  console.debug('vast', 'create', 'tracker', _tracker);
+                  console.debug('vast', 'preroll', 'tracker', _tracker);
 
                   var sources = _createSourceObjects(creative.mediaFiles);
 
@@ -304,7 +343,7 @@
                 case 'companion':
 
                   if (foundCompanion) {
-                    console.warn('vast', 'create', 'ignoring companion; already found one');
+                    console.warn('vast', 'preroll', 'ignoring companion; already found one');
                     continue;
                   }
 
@@ -316,14 +355,15 @@
 
                 default:
 
-                  console.info('vast', 'create', 'unknown creative found:', creative);
+                  console.info('vast', 'preroll', 'unknown creative found:', creative);
               }
             }
 
             if (foundCreative) {
-              console.debug('vast', 'create', 'found VAST');
+              console.debug('vast', 'preroll', 'found VAST');
+
               // vast tracker and content is ready to go, trigger event
-              _player.trigger('vast-ready');
+              _startAd();
               return;
             }
 
@@ -343,25 +383,8 @@
     _player.vast.remove = function() {
       console.debug('vast', 'remove');
 
-      // remove skip button
-      if (_skipBtn && _skipBtn.parentNode) {
-        _skipBtn.parentNode.removeChild(_skipBtn);
-        _skipBtn = null;
-      } else {
-        console.info('vast', 'remove', 'no skip button found:', _skipBtn);
-      }
-
-      // remove blocker
-      if (_blockerEl && _blockerEl.parentNode) {
-        _blockerEl.parentNode.removeChild(_blockerEl);
-        _blockerEl = null;
-      } else {
-        console.info('vast', 'remove', 'no blocker found:', _blockerEl);
-      }
-
-      // remove vast-specific events
-      _player.off('timeupdate', _player.vast.timeupdate);
-      _player.off('ended', _player.vast.remove);
+      _removeBlocker();
+      _removeSkipBtn();
 
       // show player controls for video
       if (_showContentControls) {
@@ -376,7 +399,7 @@
       // complete in async manner. Sometimes when shutdown too soon, video does not start playback
       _player.ads.endLinearAdMode();
 
-      _player.trigger('vast-preroll-removed');
+      _player.play();
     }
 
     _player.vast.tracker = function() {
@@ -405,46 +428,19 @@
       return null;
     }
 
-    _player.on('vast-ready', function () {
-      console.info('vast', 'vast-ready');
-      // vast is prepared with content, set up ads and trigger ready function
-
-      _player.trigger('adsready');
-    });
-
-    _player.on('vast-preroll-ready', function () {
-      console.info('vast', 'vast-preroll-ready');
-      // start playing preroll, note: this should happen this way no matter what, even if autoplay
-      //  has been disabled since the preroll function shouldn't run until the user/autoplay has
-      //  caused the main video to trigger this preroll function
-      _player.play();
-    });
-
-    _player.on('vast-preroll-removed', function () {
-      console.info('vast', 'vast-preroll-removed');
-      // preroll done or removed, start playing the actual video
-      _player.play();
-    });
-
     _player.on('contentupdate', function(e) {
       console.info('vast', 'contentupdate', e.newValue);
-
-      // setTimeout(_player.vast.create, 0);
-      _player.vast.create();
+      _player.trigger('adsready');
     });
 
     _player.on('readyforpreroll', function() {
       console.info('vast', 'readyforpreroll');
+
       // if we don't have a vast url, just bail out
       if (!options.url) {
         _player.trigger('adscanceled');
         return;
       }
-
-      // if (!_tracker) {
-      //   console.debug('vast', 'readyforpreroll', 'no tracker found: calling vast.create()');
-      //   _player.vast.create();
-      // }
 
       // set up and start playing preroll
       _player.vast.preroll();
