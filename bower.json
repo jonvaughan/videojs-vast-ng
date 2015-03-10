@@ -28,8 +28,8 @@
     "lib"
   ],
   "dependencies": {
-    "video.js": "git@github.com:pcting/video.js.git#vpaid",
-    "vast-client-js": "1.3.2",
-    "videojs-contrib-ads": "git@github.com:pcting/videojs-contrib-ads.git#master"
+    "video.js": "~4.12.0",
+    "vast-client-js": "1.3.3",
+    "videojs-contrib-ads": "~1.0.0"
   }
 }
