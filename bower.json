@@ -29,7 +29,7 @@
   ],
   "dependencies": {
     "video.js": "~4.12.0",
-    "vast-client-js": "1.3.3",
+    "vast-client-js": "~1.3.3",
     "videojs-contrib-ads": "~1.0.0"
   }
 }
