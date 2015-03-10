@@ -1,13 +1,30 @@
 (function(window, videojs, dmvast, undefined) {
   'use strict';
 
+  var parseXml;
+
+  if (window.DOMParser) {
+    parseXml = function(xmlStr) {
+      return ( new window.DOMParser() ).parseFromString(xmlStr, "text/xml");
+    };
+  } else if (typeof window.ActiveXObject != "undefined" && new window.ActiveXObject("Microsoft.XMLDOM")) {
+    parseXml = function(xmlStr) {
+      var xmlDoc = new window.ActiveXObject("Microsoft.XMLDOM");
+      xmlDoc.async = "false";
+      xmlDoc.loadXML(xmlStr);
+      return xmlDoc;
+    };
+  } else {
+    parseXml = function() { return null; }
+  }
+
   function vast(options) {
     var
       _player = this,
       _playerEl = _player.el(),
       _showContentControls,
       _sources,
-      _companion,
+      _companions,
       _tracker,
       _blockerEl,
       _skipBtn;
@@ -42,9 +59,14 @@
           var source = {
             type: f.mimeType,
             src: f.fileURL,
-            apiFramework: f.apiFramework,
             width: f.width,
-            height: f.height
+            height: f.height,
+
+            // extended properties
+            apiFramework: f.apiFramework,
+            adParameters: f.adParameters,
+            duration: f.duration,
+            bitrate: f.bitrate
           };
 
           // Check if source can be played with this technology
@@ -115,7 +137,7 @@
         errorOccurred = false,
         t = _tracker,
         canplayFn = function(e) {
-          console.warn('vast', '_setupTrackerEvents', 'canplay', e);
+          console.warn('vast', 'event', 'canplay', e);
           _tracker.load();
         },
         timeupdateFn = function() {
@@ -125,15 +147,15 @@
           t.setProgress(_player.currentTime());
         },
         pauseFn = function(e) {
-          console.warn('vast', '_setupTrackerEvents', 'pause', e);
+          console.warn('vast', 'event', 'pause', e);
           t.setPaused(true);
           _player.one('play', function() {
-            console.log('vast', '_setupTrackerEvents', 'pauseFn', 'play');
+            console.log('vast', 'event', 'pauseFn', 'play');
             t.setPaused(false);
           });
         },
         errorFn = function(e) {
-          console.warn('vast', '_setupTrackerEvents', 'error', e);
+          console.warn('vast', 'event', 'error', e);
           // Inform ad server we couldn't play the media file for this ad
           dmvast.util.track(t.ad.errorURLTemplates, {ERRORCODE: 405});
           errorOccurred = true;
@@ -255,6 +277,7 @@
     var _updateSkipBtn = function() {
       // TODO: check if this is required
       _player.loadingSpinner.el().style.display = "none";
+      // _player.bigPlayButton.el().style.display = "none";
 
       var timeLeft = Math.ceil(options.skip - _player.currentTime());
 
@@ -267,6 +290,48 @@
         }
       }
     };
+
+    var _updateCompanions = function() {
+      for(var i=0; i<_companions.variations.length; i++) {
+        var comp = _companions.variations[i];
+        var q = '#' + _player.id() + '-' + comp.width + 'x' + comp.height;
+        var compEl = document.querySelector(q);
+
+        if (!compEl) {
+          console.debug('no companion element found:', q);
+          continue;
+        }
+
+        if (comp.staticResource) {
+          var img = new Image();
+          img.src = comp.staticResource;
+          img.width = comp.width;
+          img.height = comp.height;
+
+          var aEl = document.createElement('a');
+          aEl.setAttribute('target', '_blank');
+          aEl.href = comp.companionClickThroughURLTemplate
+          aEl.appendChild(img);
+
+          compEl.innerHTML = '';
+          compEl.appendChild(aEl);
+        } else if (comp.htmlResource) {
+          compEl.innerHTML = comp.htmlResource;
+        } else if (comp.iframeResource) {
+          var iframeEl = videojs.Component.prototype.createEl('iframe', {
+            scrolling: 'no',
+            marginWidth: 0,
+            marginHeight: 0,
+            frameBorder: 0,
+            src: comp.iframeResource
+          });
+
+          compEl.appendChild(iframeEl);
+        } else {
+          console.debug('vast', 'ignoring companion: ', comp);
+        }
+      }
+    }
 
     var _startAd = function() {
       console.debug('vast', 'startAd');
@@ -287,6 +352,11 @@
         _addSkipBtn();
       }
 
+      if (_companions) {
+        console.info('startAd', 'add companions', _companions);
+        _updateCompanions();
+      }
+
       _setupTrackerEvents();
 
       _player.one('ended', _player.vast.remove);
@@ -301,9 +371,35 @@
         return;
       }
 
-      // query vast url given in options
-      dmvast.client.get(options.url, function(response) {
-        console.warn('vast', 'preroll', 'response', response);
+      // custom url handler for requesting VAST tags to bypass CORS problems
+      var swfUrlHandlerOptions = {
+        urlhandler: {
+          supported: function() {
+            return !!CrossXHR;
+          },
+
+          get: function(url, options, cb) {
+            try {
+              var xhr = new CrossXHR();
+              xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                  console.debug('vast', 'vast response', parseXml(xhr.responseText));
+                  cb(null, parseXml(xhr.responseText));
+                }
+              };
+              console.debug('request to ', url);
+              xhr.open('GET', url);
+              xhr.send();
+            } catch(e) {
+              console.warn(e);
+              cb();
+            }
+          }
+        }
+      };
+
+      dmvast.client.get(options.url, options.flashxhr ? swfUrlHandlerOptions : undefined, function(response) {
+        console.info('vast', 'preroll', 'response', response);
         if (response) {
           // TODO: Rework code to utilize multiple ADs
 
@@ -347,7 +443,7 @@
                     continue;
                   }
 
-                  _companion = creative;
+                  _companions = creative;
 
                   foundCompanion = true;
 
@@ -368,7 +464,7 @@
             }
 
             _sources = undefined;
-            _companion = undefined;
+            _companions = undefined;
 
             // Inform ad server we can't find suitable media file for this ad
             dmvast.util.track(ad.errorURLTemplates, {ERRORCODE: 403});
@@ -393,7 +489,7 @@
       }
 
       _sources = null;
-      _companion = null;
+      _companions = null;
       _tracker = null;
 
       // complete in async manner. Sometimes when shutdown too soon, video does not start playback
@@ -419,6 +515,18 @@
         return options.url;
       } else {
         options.url = url;
+      }
+    };
+
+    _player.vast.sources = function() {
+      return _sources;
+    };
+
+    _player.vast.flashxhr = function() {
+      if (flashxhr === undefined) {
+        return options.flashxhr;
+      } else {
+        options.flashxhr = flashxhr;
       }
     };
 
@@ -448,7 +556,8 @@
 
     // merge in default values
     options = videojs.util.mergeOptions({
-      skip: 5
+      skip: 5,
+      flashxhr: false
     }, options);
   };
 
