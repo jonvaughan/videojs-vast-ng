@@ -26,7 +26,6 @@
       _sources,
       _companions,
       _tracker,
-      _blockerEl,
       _skipBtn;
 
     _player.vast = _player.vast || {};
@@ -179,7 +178,13 @@
       });
     };
 
-    var _addBlocker = function() {
+    var _adClick = function() {
+      console.info('vast', 'block', 'clicked');
+      if (_player.paused()) {
+        _player.play();
+        return false;
+      }
+
       var clickthrough;
 
       if (_tracker.clickThroughURLTemplate) {
@@ -192,46 +197,14 @@
         )[0];
       }
 
-      // add blocker
-      _blockerEl = videojs.Component.prototype.createEl('a', {
-        className: 'vast-blocker',
-        href: clickthrough || "#",
-        target: '_blank',
-        onclick: function() {
-          console.info('vast', 'block', 'clicked');
-          if (_player.paused()) {
-            _player.play();
-            return false;
-          }
-
-          if (_tracker.clickTrackingURLTemplate) {
-            _tracker.trackURLs([_tracker.clickTrackingURLTemplate]);
-          }
-
-          _player.trigger('adclick');
-
-          if (!clickthrough) {
-            if(window.Event.prototype.stopPropagation !== undefined) {
-              e.stopPropagation();
-            } else {
-              return false;
-            }
-          }
-        }
-      });
-
-      videojs.insertFirst(_blockerEl, _playerEl);
-    };
-
-    var _removeBlocker = function() {
-      // remove blocker
-      if (!_blockerEl || !_blockerEl.parentNode) {
-        console.info('vast', 'remove', 'no blocker found:', _blockerEl);
-        return;
+      if (_tracker.clickTrackingURLTemplate) {
+        _tracker.trackURLs([_tracker.clickTrackingURLTemplate]);
       }
 
-      _blockerEl.parentNode.removeChild(_blockerEl);
-      _blockerEl = null;
+      _player.trigger('adclick');
+
+      window.open(clickthrough, '_blank');
+      _player.pause();
     };
 
     var _addSkipBtn = function() {
@@ -275,6 +248,11 @@
     }
 
     var _updateSkipBtn = function() {
+      if (!_skipBtn) {
+        _removeSkipBtn();
+        return;
+      }
+
       var timeLeft = Math.ceil(options.skip - _player.currentTime());
 
       if(timeLeft > 0) {
@@ -344,7 +322,7 @@
 
 
       if (_tracker && !_sourceContainsVPAID(_sources)) {
-        _addBlocker();
+        _player.on('click', _adClick);
         _addSkipBtn();
       }
 
@@ -475,7 +453,7 @@
     _player.vast.remove = function() {
       console.debug('vast', 'remove');
 
-      _removeBlocker();
+      _player.off('click', _adClick);
       _removeSkipBtn();
 
       // show player controls for video
