@@ -275,10 +275,6 @@
     }
 
     var _updateSkipBtn = function() {
-      // TODO: check if this is required
-      _player.loadingSpinner.el().style.display = "none";
-      // _player.bigPlayButton.el().style.display = "none";
-
       var timeLeft = Math.ceil(options.skip - _player.currentTime());
 
       if(timeLeft > 0) {
