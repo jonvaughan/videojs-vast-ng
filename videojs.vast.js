@@ -179,11 +179,7 @@
     };
 
     var _adClick = function() {
-      console.info('vast', 'block', 'clicked');
-      if (_player.paused()) {
-        _player.play();
-        return false;
-      }
+      console.info('vast', 'clicked');
 
       var clickthrough;
 
@@ -195,6 +191,15 @@
             CONTENTPLAYHEAD: _tracker.progressFormated()
           }
         )[0];
+      }
+
+      if (!clickthrough) {
+        return;
+      }
+
+      if (_player.paused()) {
+        _player.play();
+        return false;
       }
 
       if (_tracker.clickTrackingURLTemplate) {
