@@ -18,6 +18,31 @@
     parseXml = function() { return null; }
   }
 
+  // custom url handler for requesting VAST tags to bypass CORS problems
+  var swfURLHandler = {
+    supported: function() {
+      return CrossXHR && videojs.Flash.isSupported();
+    },
+
+    get: function(url, options, cb) {
+      try {
+        var xhr = new CrossXHR();
+        xhr.onreadystatechange = function() {
+          if (xhr.readyState === 4) {
+            if (options.debug) { videojs.log('vast', 'vast response', parseXml(xhr.responseText)); }
+            cb(null, parseXml(xhr.responseText));
+          }
+        };
+        if (options.debug) { videojs.log('request to ', url); }
+        xhr.open('GET', url);
+        xhr.send();
+      } catch(e) {
+        videojs.log.warn(e);
+        cb();
+      }
+    }
+  };
+
   function vast(options) {
     var
       _player = this,
@@ -41,13 +66,13 @@
 
         // Check if the current tech is defined before continuing
         if (!tech) {
-          console.warn('vast', 'createSourceObjects', 'skipping "' + techName + '"; tech not found');
+          videojs.log.warn('vast', 'createSourceObjects', 'skipping "' + techName + '"; tech not found');
           continue;
         }
 
         // Check if the browser supports this technology
         if (!tech.isSupported()) {
-          console.warn('vast', 'createSourceObjects', 'skipping "' + techName + '"; tech not supported');
+          videojs.log.warn('vast', 'createSourceObjects', 'skipping "' + techName + '"; tech not supported');
           continue;
         }
 
@@ -70,7 +95,6 @@
 
           // Check if source can be played with this technology
           if (!tech.canPlaySource(source)) {
-            // console.debug('vast', 'createSourceObjects', 'source not supported:', source);
             continue;
           }
 
@@ -85,7 +109,7 @@
         tech = techOrder[i];
 
         if (sourcesByFormat[tech] === undefined) {
-          console.debug('vast', 'createSourceObjects', 'no sources found for tech:', tech);
+          if (options.debug) { videojs.log('vast', 'createSourceObjects', 'no sources found for tech:', tech); }
           continue;
         }
 
@@ -136,7 +160,7 @@
         errorOccurred = false,
         t = _tracker,
         canplayFn = function(e) {
-          console.warn('vast', 'event', 'canplay', e);
+          if (options.debug) { videojs.log('vast', 'event', 'canplay', e); }
           _tracker.load();
         },
         timeupdateFn = function() {
@@ -146,15 +170,15 @@
           t.setProgress(_player.currentTime());
         },
         pauseFn = function(e) {
-          console.warn('vast', 'event', 'pause', e);
+          if (options.debug) { videojs.log('vast', 'event', 'pause', e); }
           t.setPaused(true);
           _player.one('play', function() {
-            console.log('vast', 'event', 'pauseFn', 'play');
+            if (options.debug) { videojs.log('vast', 'event', 'pauseFn', 'play'); }
             t.setPaused(false);
           });
         },
         errorFn = function(e) {
-          console.warn('vast', 'event', 'error', e);
+          videojs.log.error('vast', 'event', 'error', e);
           // Inform ad server we couldn't play the media file for this ad
           dmvast.util.track(t.ad.errorURLTemplates, {ERRORCODE: 405});
           errorOccurred = true;
@@ -179,7 +203,7 @@
     };
 
     var _adClick = function() {
-      console.info('vast', 'clicked');
+      if (options.debug) { videojs.log('vast', 'clicked'); }
 
       var clickthrough;
 
@@ -215,7 +239,7 @@
     var _addSkipBtn = function() {
       // add skip button
       if (options.skip < 0) {
-        console.info('vast', 'init ui', 'skip < 0, disabling skip button');
+        if (options.debug) { videojs.log('vast', 'init ui', 'skip < 0, disabling skip button'); }
         return;
       }
 
@@ -242,7 +266,7 @@
     var _removeSkipBtn = function() {
       // remove skip button
       if (!_skipBtn || !_skipBtn.parentNode) {
-        console.info('vast', 'remove', 'no skip button found:', _skipBtn);
+        if (options.debug) { videojs.log('vast', 'remove', 'no skip button found:', _skipBtn); }
         return;
       }
 
@@ -277,7 +301,7 @@
         var compEl = document.querySelector(q);
 
         if (!compEl) {
-          console.debug('no companion element found:', q);
+          if (options.debug) { videojs.log('no companion element found:', q); }
           continue;
         }
 
@@ -307,13 +331,13 @@
 
           compEl.appendChild(iframeEl);
         } else {
-          console.debug('vast', 'ignoring companion: ', comp);
+          if (options.debug) { videojs.log('vast', 'ignoring companion: ', comp); }
         }
       }
     }
 
     var _startAd = function() {
-      console.debug('vast', 'startAd');
+      if (options.debug) { videojs.log('vast', 'startAd'); }
 
       _player.ads.startLinearAdMode();
       _showContentControls = _player.controls();
@@ -332,7 +356,7 @@
       }
 
       if (_companions) {
-        console.info('startAd', 'add companions', _companions);
+        if (options.debug) { videojs.log('startAd', 'add companions', _companions); }
         _updateCompanions();
       }
 
@@ -350,35 +374,9 @@
         return;
       }
 
-      // custom url handler for requesting VAST tags to bypass CORS problems
-      var swfUrlHandlerOptions = {
-        urlhandler: {
-          supported: function() {
-            return !!CrossXHR;
-          },
+      dmvast.client.get(options.url, { urlhandler: swfURLHandler }, function(response) {
+        if (options.debug) { videojs.log('vast', 'preroll', 'response', response); }
 
-          get: function(url, options, cb) {
-            try {
-              var xhr = new CrossXHR();
-              xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                  console.debug('vast', 'vast response', parseXml(xhr.responseText));
-                  cb(null, parseXml(xhr.responseText));
-                }
-              };
-              console.debug('request to ', url);
-              xhr.open('GET', url);
-              xhr.send();
-            } catch(e) {
-              console.warn(e);
-              cb();
-            }
-          }
-        }
-      };
-
-      dmvast.client.get(options.url, options.flashxhr ? swfUrlHandlerOptions : undefined, function(response) {
-        console.info('vast', 'preroll', 'response', response);
         if (response) {
           // TODO: Rework code to utilize multiple ADs
 
@@ -393,18 +391,18 @@
                 case 'linear':
 
                   if (foundCreative) {
-                    console.warn('vast', 'preroll', 'ignoring linear; already found one');
+                    videojs.log.warn('vast', 'preroll', 'ignoring linear; already found one');
                     continue;
                   }
 
                   if (!creative.mediaFiles.length) {
-                    console.warn('vast', 'preroll', 'ignoring linear; no media files found');
+                    videojs.log.warn('vast', 'preroll', 'ignoring linear; no media files found');
                     continue;
                   }
 
                   _tracker = new dmvast.tracker(ad, creative);
 
-                  console.debug('vast', 'preroll', 'tracker', _tracker);
+                  if (options.debug) { videojs.log('vast', 'preroll', 'tracker', _tracker); }
 
                   var sources = _createSourceObjects(creative.mediaFiles);
 
@@ -418,7 +416,7 @@
                 case 'companion':
 
                   if (foundCompanion) {
-                    console.warn('vast', 'preroll', 'ignoring companion; already found one');
+                    videojs.log.warn('vast', 'preroll', 'ignoring companion; already found one');
                     continue;
                   }
 
@@ -430,12 +428,12 @@
 
                 default:
 
-                  console.info('vast', 'preroll', 'unknown creative found:', creative);
+                  videojs.log.warn('vast', 'preroll', 'unknown creative found:', creative);
               }
             }
 
             if (foundCreative) {
-              console.debug('vast', 'preroll', 'found VAST');
+              if (options.debug) { videojs.log('vast', 'preroll', 'found VAST'); }
 
               // vast tracker and content is ready to go, trigger event
               _startAd();
@@ -456,14 +454,14 @@
     };
 
     _player.vast.remove = function() {
-      console.debug('vast', 'remove');
+      if (options.debug) { videojs.log('vast', 'remove'); }
 
       _player.off('click', _adClick);
       _removeSkipBtn();
 
       // show player controls for video
       if (_showContentControls) {
-        console.debug('vast', 'remove', 'enable controls');
+        if (options.debug) { videojs.log('vast', 'remove', 'enable controls'); }
         _player.controls(true);
       }
 
@@ -501,27 +499,19 @@
       return _sources;
     };
 
-    _player.vast.flashxhr = function() {
-      if (flashxhr === undefined) {
-        return options.flashxhr;
-      } else {
-        options.flashxhr = flashxhr;
-      }
-    };
-
     // check that we have the ads plugin
     if (_player.ads === undefined) {
-      console.error('vast', 'vast video plugin requires videojs-contrib-ads, vast plugin not initialized');
+      videojs.log.error('vast', 'vast video plugin requires videojs-contrib-ads, vast plugin not initialized');
       return null;
     }
 
     _player.on('contentupdate', function(e) {
-      console.info('vast', 'contentupdate', e.newValue);
+      if (options.debug) { videojs.log('vast', 'contentupdate', e.newValue); }
       _player.trigger('adsready');
     });
 
     _player.on('readyforpreroll', function() {
-      console.info('vast', 'readyforpreroll');
+      if (options.debug) { videojs.log('vast', 'readyforpreroll'); }
 
       // if we don't have a vast url, just bail out
       if (!options.url) {
@@ -535,8 +525,7 @@
 
     // merge in default values
     options = videojs.util.mergeOptions({
-      skip: 5,
-      flashxhr: false
+      skip: 5
     }, options);
   };
 
