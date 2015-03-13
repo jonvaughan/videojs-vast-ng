@@ -1,16 +1,20 @@
 {
-  "name": "videojs-vast",
-  "version": "0.3.0",
-  "homepage": "https://github.com/pragmaticlabs/videojs-vast",
+  "name": "videojs-vast-ng",
+  "version": "0.1.0",
+  "homepage": "https://github.com/pragmaticlabs/videojs-vast-ng",
   "authors": [
-    "Patrick Ting <patrick@gmail.com>"
+    "Patrick Ting <pcting@gmail.com>"
   ],
   "description": "A VAST plugin for VideoJS",
-  "main": "videojs.vast.js",
+  "main": [
+    "videojs.vast.js",
+    "videojs.vast.css"
+  ],
   "keywords": [
     "videojs",
     "video",
     "vast",
+    "vast-ng",
     "ads"
   ],
   "license": "MIT",
@@ -25,8 +29,10 @@
     "lib"
   ],
   "dependencies": {
-    "video.js": "~4.12.0",
-    "vast-client-js": "~1.3.3",
-    "videojs-contrib-ads": "~1.0.0"
+    "video.js": ">4.12.0",
+    "vast-client-js": ">1.3.0",
+    "videojs-contrib-ads": ">1.0.0",
+    "videojs-vpaid": "*",
+    "crossxhr": "*"
   }
 }
