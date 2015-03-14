@@ -1,21 +1,21 @@
 (function(window, videojs, dmvast, undefined) {
   'use strict';
 
-  var parseXml;
+  var _parseXml;
 
   if (window.DOMParser) {
-    parseXml = function(xmlStr) {
+    _parseXml = function(xmlStr) {
       return ( new window.DOMParser() ).parseFromString(xmlStr, "text/xml");
     };
   } else if (typeof window.ActiveXObject != "undefined" && new window.ActiveXObject("Microsoft.XMLDOM")) {
-    parseXml = function(xmlStr) {
+    _parseXml = function(xmlStr) {
       var xmlDoc = new window.ActiveXObject("Microsoft.XMLDOM");
       xmlDoc.async = "false";
       xmlDoc.loadXML(xmlStr);
       return xmlDoc;
     };
   } else {
-    parseXml = function() { return null; }
+    _parseXml = function() { return null; }
   }
 
   // custom url handler for requesting VAST tags to bypass CORS problems
@@ -29,8 +29,9 @@
         var xhr = new CrossXHR();
         xhr.onreadystatechange = function() {
           if (xhr.readyState === 4) {
-            if (options.debug) { videojs.log('vast', 'vast response', parseXml(xhr.responseText)); }
-            cb(null, parseXml(xhr.responseText));
+            var xml = _parseXml(xhr.responseText);
+            if (options.debug) { videojs.log('vast', 'vast response', xml); }
+            cb(null, xml);
           }
         };
         if (options.debug) { videojs.log('request to ', url); }
@@ -51,6 +52,7 @@
       _sources,
       _companions,
       _tracker,
+      _adbreak,
       _skipBtn;
 
     _player.vast = _player.vast || {};
@@ -248,7 +250,7 @@
         onclick: function(e) {
           if((' ' + _skipBtn.className + ' ').indexOf(' enabled ') >= 0) {
             _tracker.skip();
-            _player.vast.remove();
+            _endAd();
           }
           if(window.Event.prototype.stopPropagation !== undefined) {
             e.stopPropagation();
@@ -285,11 +287,11 @@
       var timeLeft = Math.ceil(options.skip - _player.currentTime());
 
       if(timeLeft > 0) {
-        _skipBtn.innerHTML = "Skip in " + timeLeft + "...";
+        _skipBtn.innerHTML = 'AD#' + _adbreak.count + '/' + options.maxAdCount + ' Skip in ' + timeLeft + '...';
       } else {
         if((' ' + _skipBtn.className + ' ').indexOf(' enabled ') === -1) {
-          _skipBtn.className += " enabled";
-          _skipBtn.innerHTML = "Skip";
+          _skipBtn.className += ' enabled';
+          _skipBtn.innerHTML = 'AD#' + _adbreak.count + '/' + options.maxAdCount + ' Skip';
         }
       }
     };
@@ -334,21 +336,78 @@
           if (options.debug) { videojs.log('vast', 'ignoring companion: ', comp); }
         }
       }
-    }
+    };
 
-    var _startAd = function() {
-      if (options.debug) { videojs.log('vast', 'startAd'); }
+    var _startLinearAdBreak = function(type) {
+      if (options.debug) { videojs.log('vast', 'startLinearAdBreak'); }
 
       _player.ads.startLinearAdMode();
       _showContentControls = _player.controls();
 
+      // save state of player controlls so we can restore them after the ad break
       if (_showContentControls) {
         _player.controls(false);
       }
+    };
+
+    var _endLinearAdBreak = function() {
+      if (options.debug) { videojs.log('vast', 'endLinearAdBreak'); }
+
+      // restore state of player controls before the ad break
+      if (_showContentControls) {
+        if (options.debug) { videojs.log('vast', 'unloadAd', 'enable controls'); }
+        _player.controls(true);
+      }
+
+      _player.ads.endLinearAdMode();
+
+      _adbreak = null;
+
+      _player.play();
+    };
+
+    var _endAd = function(forceEndAdBreak) {
+      if (options.debug) { videojs.log('vast', 'endAd', _player.ads.state); }
+
+      _player.off('ended', _endAd);
+
+      if (!_adbreak) {
+        videojs.log.warn('vast', 'endAd', 'not playing an AD! state: ' + _player.ads.state);
+        return;
+      } else {
+        videojs.log('adbreak', _adbreak);
+      }
+
+      _player.off('click', _adClick);
+      _removeSkipBtn();
+
+      // Decide if we want to call another AD to simulate VAST 3 AD Pods
+      if (forceEndAdBreak === true || _adbreak.attempts >= options.maxAdAttempts
+        || _adbreak.count >= options.maxAdCount) {
+        _endLinearAdBreak();
+      } else {
+        _loadVAST();
+      }
+    }
+
+    var _startAd = function() {
+      if (options.debug) { videojs.log('vast', 'startAd', _player.ads.state); }
+
+      if (_player.ads.state !== 'ad-playback') {
+        _startLinearAdBreak();
+      }
+
+      _adbreak.count++;
 
       // load linear ad sources and start playing them
-      _player.src(_sources);
 
+      // HACK: Reuse of the Vpaidflash tech doesn't work
+      if (_player.techName === 'Vpaidjs') {
+        _player.unloadTech();
+        _player.techName = null;
+      }
+
+      _player.src(_sources);
 
       if (_tracker && !_sourceContainsVPAID(_sources)) {
         _player.on('click', _adClick);
@@ -362,23 +421,27 @@
 
       _setupTrackerEvents();
 
-      _player.one('ended', _player.vast.remove);
+      _player.on('ended', _endAd);
 
+      // console.warn('techGet', 'canPlaySource', _player.techGet('canPlaySource'));
       _player.play();
     };
 
-    _player.vast.preroll = function() {
+    var _loadVAST = function() {
+      if (options.debug) { videojs.log('vast', 'loadVAST'); }
+
+      _adbreak.attempts++;
 
       if (!options.url) {
         _player.trigger('adscanceled');
         return;
       }
 
-      dmvast.client.get(options.url, { urlhandler: swfURLHandler }, function(response) {
-        if (options.debug) { videojs.log('vast', 'preroll', 'response', response); }
+      dmvast.client.get(options.url, { urlhandler: options.customURLHandler }, function(response) {
+        if (options.debug) { videojs.log('vast', 'loadVAST', 'response', response); }
 
         if (response) {
-          // TODO: Rework code to utilize multiple ADs
+          // TODO: Rework code to support VAST 3 AD Pods
 
           // we got a response, deal with it
           for (var i = 0; i < response.ads.length; i++) {
@@ -391,24 +454,24 @@
                 case 'linear':
 
                   if (foundCreative) {
-                    videojs.log.warn('vast', 'preroll', 'ignoring linear; already found one');
+                    videojs.log.warn('vast', 'loadVAST', 'ignoring linear; already found one');
                     continue;
                   }
 
                   if (!creative.mediaFiles.length) {
-                    videojs.log.warn('vast', 'preroll', 'ignoring linear; no media files found');
+                    videojs.log.warn('vast', 'loadVAST', 'ignoring linear; no media files found');
                     continue;
                   }
-
-                  _tracker = new dmvast.tracker(ad, creative);
-
-                  if (options.debug) { videojs.log('vast', 'preroll', 'tracker', _tracker); }
 
                   var sources = _createSourceObjects(creative.mediaFiles);
 
                   if (sources && sources.length) {
                     _sources = sources;
                     foundCreative = true;
+
+                    _tracker = new dmvast.tracker(ad, creative);
+
+                    if (options.debug) { videojs.log('vast', 'loadVAST', 'tracker', _tracker); }
                   }
 
                   break;
@@ -416,7 +479,7 @@
                 case 'companion':
 
                   if (foundCompanion) {
-                    videojs.log.warn('vast', 'preroll', 'ignoring companion; already found one');
+                    videojs.log.warn('vast', 'loadVAST', 'ignoring companion; already found one');
                     continue;
                   }
 
@@ -428,12 +491,12 @@
 
                 default:
 
-                  videojs.log.warn('vast', 'preroll', 'unknown creative found:', creative);
+                  videojs.log.warn('vast', 'loadVAST', 'unknown creative found:', creative);
               }
             }
 
             if (foundCreative) {
-              if (options.debug) { videojs.log('vast', 'preroll', 'found VAST'); }
+              if (options.debug) { videojs.log('vast', 'loadVAST', 'found VAST'); }
 
               // vast tracker and content is ready to go, trigger event
               _startAd();
@@ -443,36 +506,48 @@
             _sources = undefined;
             _companions = undefined;
 
-            // Inform ad server we can't find suitable media file for this ad
+            // inform ad server we can't find suitable media file for this ad
             dmvast.util.track(ad.errorURLTemplates, {ERRORCODE: 403});
           }
         }
 
-        // No preroll found
+        // no ads found: lets cancel the ad break
         _player.trigger('adscanceled');
       });
-    };
+    }
 
-    _player.vast.remove = function() {
-      if (options.debug) { videojs.log('vast', 'remove'); }
+    var _unloadVAST = function() {
+      if (options.debug) { videojs.log('vast', 'unloadAd'); }
 
-      _player.off('click', _adClick);
-      _removeSkipBtn();
-
-      // show player controls for video
-      if (_showContentControls) {
-        if (options.debug) { videojs.log('vast', 'remove', 'enable controls'); }
-        _player.controls(true);
-      }
+      _endAd();
 
       _sources = null;
       _companions = null;
       _tracker = null;
+    }
 
-      // complete in async manner. Sometimes when shutdown too soon, video does not start playback
-      _player.ads.endLinearAdMode();
+    _player.vast.preroll = function() {
 
-      _player.play();
+      // reset these values on every ad break to support ad pods
+      _adbreak = {
+        attempts: 0,
+        count: 0
+      };
+
+      _loadVAST();
+    };
+
+    _player.vast.midroll = function() {
+      throw new Error('midroll not implemented');
+    };
+
+    _player.vast.postroll = function() {
+      throw new Error('postroll not implemented');
+    };
+
+    _player.vast.ensureLeaveAdBreak = function() {
+      _endAd(true);
+      _unloadVAST();
     }
 
     _player.vast.tracker = function() {
@@ -495,8 +570,28 @@
       }
     };
 
-    _player.vast.sources = function() {
-      return _sources;
+    _player.vast.maxAdCount = function(maxAdCount) {
+      if (maxAdCount === undefined) {
+        return options.maxAdCount;
+      } else {
+        options.maxAdCount = maxAdCount;
+      }
+    };
+
+    _player.vast.maxAdAttempts = function(maxAdAttempts) {
+      if (maxAdAttempts === undefined) {
+        return options.maxAdAttempts;
+      } else {
+        options.maxAdAttempts = maxAdAttempts;
+      }
+    };
+
+    _player.vast.currentAdAttempt = function(maxAdAttempts) {
+      return _adbreak ? _adbreak.attempts : undefined;
+    };
+
+    _player.vast.currentAdCount = function() {
+      return _adbreak ? _adbreak.count : undefined;
     };
 
     // check that we have the ads plugin
@@ -513,19 +608,17 @@
     _player.on('readyforpreroll', function() {
       if (options.debug) { videojs.log('vast', 'readyforpreroll'); }
 
-      // if we don't have a vast url, just bail out
-      if (!options.url) {
-        _player.trigger('adscanceled');
-        return;
-      }
-
       // set up and start playing preroll
       _player.vast.preroll();
     });
 
     // merge in default values
     options = videojs.util.mergeOptions({
-      skip: 5
+      skip: 5,
+      customVastClientURLHandler: swfURLHandler,
+      maxAdAttempts: 1,
+      maxAdCount: 1,
+      adParameters: {}
     }, options);
   };
 
