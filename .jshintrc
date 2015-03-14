@@ -24,6 +24,7 @@
     "videojs",
     "DMVAST",
     "console",
-    "Event"
+    "Event",
+    "CrossXHR"
   ]
 }
