@@ -327,10 +327,10 @@
       if (options.debug) { videojs.log('vast', 'startLinearAdBreak'); }
 
       // HACK: TODO: Verify correctness
-      if (!_player.el_ || !vjs.expando || !_player.el_[vjs.expando]) {
-        videojs.log.error('Failing out until issue closed: https://github.com/videojs/video.js/issues/1896');
-        return;
-      }
+      // if (!_player.el_ || !vjs.expando || !_player.el_[vjs.expando]) {
+      //   videojs.log.error('Failing out until issue closed: https://github.com/videojs/video.js/issues/1896');
+      //   return;
+      // }
 
       // console.error(_player.el_, vjs.expando, _player.el_[vjs.expando]);
 
@@ -390,6 +390,12 @@
       }
 
       _adbreak.count++;
+
+      // HACK
+      if (_player.techName === 'Vpaidflash') {
+        _player.techName = null;
+        _player.unloadTech();
+      }
 
       // load linear ad sources and start playing them
       _player.src(_sources);
