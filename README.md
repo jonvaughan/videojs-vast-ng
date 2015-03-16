@@ -3,9 +3,16 @@ This plugin enables VideoJS to play [VAST](https://www.iab.net/vast) advertiseme
 
 ## Features
 - VAST 2.0 support and partial VAST 3.0 support
-- AD Pod support
+- Preroll support
+- Multiple ADs per AD break support
 - Multiple companion banner support
 - Custom Flash-based XMLHttpRequest support to work around AD servers that lack CORS configuration
+
+## Roadmap
+
+- Midroll support
+- Postroll support
+- VAST 3 AD pod support
 
 ## Usage
 ```html

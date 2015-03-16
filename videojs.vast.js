@@ -326,6 +326,14 @@
     var _startLinearAdBreak = function() {
       if (options.debug) { videojs.log('vast', 'startLinearAdBreak'); }
 
+      // HACK: TODO: Verify correctness
+      if (!_player.el_ || !vjs.expando || !_player.el_[vjs.expando]) {
+        videojs.log.error('Failing out until issue closed: https://github.com/videojs/video.js/issues/1896');
+        return;
+      }
+
+      // console.error(_player.el_, vjs.expando, _player.el_[vjs.expando]);
+
       _player.ads.startLinearAdMode();
       _showContentControls = _player.controls();
 
@@ -384,13 +392,6 @@
       _adbreak.count++;
 
       // load linear ad sources and start playing them
-
-      // HACK: Reuse of the Vpaidflash tech doesn't work
-      if (_player.techName === 'Vpaidjs') {
-        _player.unloadTech();
-        _player.techName = null;
-      }
-
       _player.src(_sources);
 
       if (_tracker && !_sourceContainsVPAID(_sources)) {
