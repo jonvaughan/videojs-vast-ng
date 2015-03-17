@@ -14,20 +14,8 @@ module.exports = function(grunt) {
     },
     jshint: {
       options: {
-        '-W069': false,
-        globals: [
-          'require',
-          'module',
-          'spyOn',
-          'expect',
-          'jasmine',
-          'videojs',
-          'DMVAST',
-          'console',
-          'Event',
-          'CrossXHR',
-          'vjs',
-          'videojs']},
+        jshintrc: '.jshintrc'
+      },
       src: [
         'Gruntfile.js',
         'src/js/*.js'],
@@ -55,38 +43,14 @@ module.exports = function(grunt) {
     },
     karma: {
       options: {
-        singleRun: true,
-        autoWatch: false,
-        logLevel: 'ERROR',
-        frameworks: ['mocha', 'sinon', 'chai'],
-        files: [
-          { pattern: 'test/vast/*', watched: true, served: true, included: false },
-          { pattern: 'test/media/*', watched: true, served: true, included: false },
-          { pattern: 'bower_components/crossxhr/crossxhr.swf', watched: false, served: true, included: false },
-
-          'bower_components/crossxhr/crossxhr.js',
-          'bower_components/vast-client-js/vast-client.js',
-          'bower_components/video.js/dist/video-js/video.novtt.dev.js',
-          'bower_components/videojs-contrib-ads/src/videojs.ads.css',
-          'bower_components/videojs-contrib-ads/src/videojs.ads.js',
-          'src/css/videojs.vast.css',
-          'src/js/videojs.vast.js',
-          'src/js/videojs.vpaidjs.js',
-          'src/js/videojs.vpaidflash.js'],
-        browsers: ['Chrome']
+        configFile: 'karma.conf'
       },
       unit: {
-        files: [
-          { src: ['test/*.js'] }
-        ]
       },
       dev: {
+        browsers: ['Chrome'],
         singleRun: false,
-        background: true,
-        logLevel: 'INFO',
-        files: [
-          { src: ['test/*.js'] }
-        ]
+        background: true
       }
     },
     connect: {
@@ -96,9 +60,13 @@ module.exports = function(grunt) {
       }
     },
     watch: {
-      js: {
+      karma: {
+        options: {
+          reload: true
+        },
         files: [
           'Gruntfile.js',
+          'karma.conf.js',
           'src/js/*.js',
           'test/*.js',
           '.jshintrc'
@@ -124,6 +92,6 @@ module.exports = function(grunt) {
 
   grunt.registerTask('curl-test-files', ['curl-dir:test-media-files']);
   grunt.registerTask('test', ['jshint', 'karma:unit']);
-  grunt.registerTask('dev', ['karma:dev', 'watch']);
+  grunt.registerTask('dev', ['karma:dev:start', 'watch']);
   grunt.registerTask('default', ['jshint', 'concat', 'uglify']);
 };

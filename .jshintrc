@@ -1,2 +1,16 @@
 {
+  "-W069": true,
+  "globals": [
+    "require",
+    "module",
+    "spyOn",
+    "expect",
+    "jasmine",
+    "videojs",
+    "DMVAST",
+    "console",
+    "Event",
+    "CrossXHR",
+    "vjs",
+    "videojs"]
 }

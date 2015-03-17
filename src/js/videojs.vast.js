@@ -1,48 +1,5 @@
-(function(window, videojs, dmvast, CrossXHR, undefined) {
+(function(window, videojs, dmvast, undefined) {
   'use strict';
-
-  var _parseXml;
-
-  if (window.DOMParser) {
-    _parseXml = function(xmlStr) {
-      return ( new window.DOMParser() ).parseFromString(xmlStr, 'text/xml');
-    };
-  } else if (typeof window.ActiveXObject !== 'undefined' && new window.ActiveXObject('Microsoft.XMLDOM')) {
-    _parseXml = function(xmlStr) {
-      var xmlDoc = new window.ActiveXObject('Microsoft.XMLDOM');
-      xmlDoc.async = 'false';
-      xmlDoc.loadXML(xmlStr);
-      return xmlDoc;
-    };
-  } else {
-    _parseXml = function() { return null; };
-  }
-
-  // custom url handler for requesting VAST tags to bypass CORS problems
-  var swfURLHandler = {
-    supported: function() {
-      return CrossXHR && videojs.Flash.isSupported();
-    },
-
-    get: function(url, options, cb) {
-      try {
-        var xhr = new CrossXHR();
-        xhr.onreadystatechange = function() {
-          if (xhr.readyState === 4) {
-            var xml = _parseXml(xhr.responseText);
-            if (options.debug) { videojs.log('vast', 'vast response', xml); }
-            cb(null, xml);
-          }
-        };
-        if (options.debug) { videojs.log('request to ', url); }
-        xhr.open('GET', url);
-        xhr.send();
-      } catch(e) {
-        videojs.log.warn(e);
-        cb();
-      }
-    }
-  };
 
   function vast(options) {
     var
@@ -596,13 +553,14 @@
     options = videojs.util.mergeOptions({
       debug: false,
       skip: 5,
-      customURLHandler: swfURLHandler,
       maxAdAttempts: 1,
       maxAdCount: 1,
       adParameters: {}
     }, options);
+
+    options.customURLHandler = videojs.SwfURLHandler({ debug: options.debug });
   }
 
   videojs.plugin('vast', vast);
 
-}(window, videojs, DMVAST, CrossXHR));
+}(window, videojs, DMVAST));

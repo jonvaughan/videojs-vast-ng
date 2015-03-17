@@ -5,11 +5,13 @@
   "authors": [
     "Patrick Ting <pcting@gmail.com>"
   ],
-  "description": "A VAST plugin for VideoJS",
+  "description": "A VAST / VPAID AD plugin for VideoJS",
   "main": [
+    "src/js/crossxhr.js",
+    "src/js/vpaidjs.js",
+    "src/js/vpaidflash.js",
+    "src/js/swfurlhandler.js",
     "src/js/videojs.vast.js",
-    "src/js/videojs.vpaidjs.js",
-    "src/js/videojs.vpaidflash.js",
     "src/css/videojs.vast.css"
   ],
   "keywords": [

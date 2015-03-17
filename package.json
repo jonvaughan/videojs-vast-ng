@@ -1,11 +1,13 @@
 {
   "name": "videojs-vast-ng",
   "version": "0.1.0",
-  "description": "A VAST / VPAID plugin for VideoJS",
+  "description": "A VAST / VPAID AD plugin for VideoJS",
   "main": [
+    "src/js/crossxhr.js",
+    "src/js/vpaidjs.js",
+    "src/js/vpaidflash.js",
+    "src/js/swfurlhandler.js",
     "src/js/videojs.vast.js",
-    "src/js/videojs.vpaidjs.js",
-    "src/js/videojs.vpaidflash.js",
     "src/css/videojs.vast.css"
   ],
   "directories": {
@@ -25,7 +27,9 @@
     "karma": "~0.12.31",
     "karma-chai": "^0.1.0",
     "karma-chrome-launcher": "^0.1.7",
+    "karma-coverage": "^0.2.7",
     "karma-mocha": "^0.1.10",
+    "karma-mocha-reporter": "^1.0.2",
     "karma-phantomjs-launcher": "^0.1.4",
     "karma-qunit": "^0.1.4",
     "karma-sinon": "^1.0.4",

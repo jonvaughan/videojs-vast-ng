@@ -49,7 +49,7 @@
         }, 100);
       });
 
-      it('should request a new preroll VAST response for every content update', function(done) {
+      it('should play multiple preroll when content updates', function(done) {
         // setTimeout(done, 2000);
 
         playerOptions.plugins['vast'] = { url: sampleVast, customURLHandler: null };
