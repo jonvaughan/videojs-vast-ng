@@ -142,7 +142,7 @@
         errorOccurred = false,
         t = _tracker,
         canplayFn = function(e) {
-          if (options.debug) { videojs.log('vast', 'event', 'canplay', e); }
+          if (options.debug) { videojs.log('vast', 'event', 'canplay'); }
           _tracker.load();
         },
         timeupdateFn = function() {
@@ -152,7 +152,7 @@
           t.setProgress(_player.currentTime());
         },
         pauseFn = function(e) {
-          if (options.debug) { videojs.log('vast', 'event', 'pause', e); }
+          if (options.debug) { videojs.log('vast', 'event', 'pause'); }
           t.setPaused(true);
           _player.one('play', function() {
             if (options.debug) { videojs.log('vast', 'event', 'pauseFn', 'play'); }
@@ -326,18 +326,10 @@
     var _startLinearAdBreak = function() {
       if (options.debug) { videojs.log('vast', 'startLinearAdBreak'); }
 
-      // HACK: TODO: Verify correctness
-      // if (!_player.el_ || !vjs.expando || !_player.el_[vjs.expando]) {
-      //   videojs.log.error('Failing out until issue closed: https://github.com/videojs/video.js/issues/1896');
-      //   return;
-      // }
-
-      // console.error(_player.el_, vjs.expando, _player.el_[vjs.expando]);
-
       _player.ads.startLinearAdMode();
       _showContentControls = _player.controls();
 
-      // save state of player controlls so we can restore them after the ad break
+      // save state of player controls so we can restore them after the ad break
       if (_showContentControls) {
         _player.controls(false);
       }
@@ -391,10 +383,10 @@
 
       _adbreak.count++;
 
-      // HACK
-      if (_player.techName === 'Vpaidflash') {
-        _player.techName = null;
-        _player.unloadTech();
+      // HACK: Instead of unloading the tech, rewire all the events
+      // when src() is called
+      if (_player['techName'] === 'Vpaidflash' && _player.ended()) {
+        _player['techName'] = null;
       }
 
       // load linear ad sources and start playing them
@@ -406,7 +398,6 @@
       }
 
       if (_companions) {
-        if (options.debug) { videojs.log('startAd', 'add companions', _companions); }
         _updateCompanions();
       }
 
@@ -414,7 +405,6 @@
 
       _player.on('ended', _endAd);
 
-      // console.warn('techGet', 'canPlaySource', _player.techGet('canPlaySource'));
       _player.play();
     };
 
@@ -461,8 +451,6 @@
                     foundCreative = true;
 
                     _tracker = new dmvast.tracker(ad, creative);
-
-                    if (options.debug) { videojs.log('vast', 'loadVAST', 'tracker', _tracker); }
                   }
 
                   break;
@@ -519,7 +507,8 @@
 
     _player.vast.preroll = function() {
 
-      // reset these values on every ad break to support ad pods
+      // reset these values on every ad break to support multiple
+      // ads per ad break
       _adbreak = {
         attempts: 0,
         count: 0
@@ -607,7 +596,7 @@
     options = videojs.util.mergeOptions({
       debug: false,
       skip: 5,
-      customVastClientURLHandler: swfURLHandler,
+      customURLHandler: swfURLHandler,
       maxAdAttempts: 1,
       maxAdCount: 1,
       adParameters: {}

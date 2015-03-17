@@ -2,5 +2,5 @@
 node_modules/
 bower_components/
 coverage/
-spec/files/
+test/media/
 *.log

@@ -7,8 +7,10 @@
   ],
   "description": "A VAST plugin for VideoJS",
   "main": [
-    "videojs.vast.js",
-    "videojs.vast.css"
+    "src/js/videojs.vast.js",
+    "src/js/videojs.vpaidjs.js",
+    "src/js/videojs.vpaidflash.js",
+    "src/css/videojs.vast.css"
   ],
   "keywords": [
     "videojs",
@@ -25,11 +27,10 @@
     "test",
     "tests",
     "spec",
-    "Gruntfile.js",
-    "lib"
+    "Gruntfile.js"
   ],
   "dependencies": {
-    "video.js": ">4.12.0",
+    "video.js": ">4.11.0",
     "vast-client-js": ">1.3.0",
     "videojs-contrib-ads": ">1.0.0",
     "crossxhr": "*"
