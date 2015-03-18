@@ -51,7 +51,6 @@ module.exports = function(grunt) {
       unit: {
       },
       dev: {
-        browsers: ['Chrome'],
         singleRun: false,
         background: true
       }

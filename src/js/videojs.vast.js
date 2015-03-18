@@ -317,7 +317,7 @@
         videojs.log.warn('vast', 'endAd', 'not playing an AD! state: ' + _player.ads.state);
         return;
       } else {
-        videojs.log('adbreak', _adbreak);
+        if (options.debug) { videojs.log('adbreak', _adbreak); }
       }
 
       _player.off('click', _adClick);

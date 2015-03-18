@@ -4,7 +4,7 @@
   describe('videojs.vast', function() {
     var
       player,
-      playerEl,
+      videoEl,
       sampleVast = 'base/test/vast/sample-vast.xml?id=1',
       sampleVast2 = 'base/test/vast/sample-vast.xml?id=2',
       sampleMp4 = {
@@ -17,64 +17,86 @@
       },
       playerId = 'vid';
 
+
+    var playerOptions, vastClientGetSpy;
+
     beforeEach(function() {
-      playerEl = document.createElement('video');
-      playerEl.setAttribute('id', playerId);
-      document.body.appendChild(playerEl);
+      videoEl = document.createElement('video');
+      videoEl.setAttribute('id', playerId);
+      document.body.appendChild(videoEl);
+
+      playerOptions = {
+        controls: true,
+        plugins: {
+          'ads': { }
+        }
+      };
+
+      vastClientGetSpy = spy(DMVAST.client, 'get');
     });
 
-    describe('Requirements', function() {
+    afterEach(function(done) {
+      vastClientGetSpy.restore();
+      // setTimeout hack around a .dispose() bug:
+      // https://github.com/videojs/video.js/issues/1484
+      setTimeout(function() {
+        if (player) {
+          player.dispose();
+          player = null;
+        }
 
-      var playerOptions;
+        if (videoEl.parentNode) {
+          videoEl.parentNode.removeChild(videoEl);
+        }
 
-      beforeEach(function() {
-        playerOptions = {
-          controls: true,
-          plugins: {
-            'ads': { }
-          }
-        };
-      });
+        videoEl = null;
 
-      afterEach(function(done) {
-        // setTimeout hack around a .dispose() bug:
-        // https://github.com/videojs/video.js/issues/1484
-        setTimeout(function() {
-          if (player) {
-            player.dispose();
-            player = null;
-          }
+        done();
+      }, 100);
+    });
 
-          done();
-        }, 100);
-      });
+    it('should switch preroll when new content updates', function(done) {
+      this.timeout(8000);
 
-      it('should play multiple preroll when content updates', function(done) {
-        // setTimeout(done, 2000);
+      playerOptions.plugins['vast'] = { url: sampleVast, customURLHandler: null };
 
-        playerOptions.plugins['vast'] = { url: sampleVast, customURLHandler: null };
+      videojs(videoEl, playerOptions, function() {
+        player = this;
 
-        var getSpy = spy(DMVAST.client, 'get');
-
-        videojs(playerEl, playerOptions, function() {
-          player = this;
-
+        player.one('play', function() {
           player.one('play', function() {
-            player.one('play', function() {
-              getSpy.calledWithMatch(sampleVast2, match.func);
-              done();
-            });
-
-            getSpy.calledWithMatch(sampleVast, match.func);
-
-            player.vast.url(sampleVast2);
-            player.src(sampleWebm);
-            player.play();
+            vastClientGetSpy.calledWithMatch(sampleVast2, match.func);
+            done();
           });
 
-          player.src(sampleMp4);
+          vastClientGetSpy.calledWithMatch(sampleVast, match.func);
+
+          player.vast.url(sampleVast2);
+          player.src(sampleWebm);
           player.play();
         });
+
+        player.src(sampleMp4);
+        player.play();
+      });
+    });
+
+    it('should play a preroll AD before playing the content', function(done) {
+      this.timeout(20000);
+
+      playerOptions.plugins['vast'] = { url: sampleVast, customURLHandler: null };
+
+      videojs(videoEl, playerOptions, function() {
+        player = this;
+
+        player.one('adstart', function() {
+          player.one('adend', function() {
+            done();
+          });
+        });
+
+        player.src(sampleMp4);
+        player.play();
       });
     });
   });
