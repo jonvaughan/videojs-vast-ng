@@ -43,7 +43,10 @@ module.exports = function(grunt) {
     },
     karma: {
       options: {
-        configFile: 'karma.conf'
+        configFile: 'karma.conf.js'
+      },
+      ci: {
+        configFile: 'karma.ci.conf.js'
       },
       unit: {
       },
@@ -93,5 +96,6 @@ module.exports = function(grunt) {
   grunt.registerTask('curl-test-files', ['curl-dir:test-media-files']);
   grunt.registerTask('test', ['jshint', 'karma:unit']);
   grunt.registerTask('dev', ['karma:dev:start', 'watch']);
+  grunt.registerTask('ci', ['jshint', 'karma:ci']);
   grunt.registerTask('default', ['jshint', 'concat', 'uglify']);
 };
