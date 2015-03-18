@@ -2,13 +2,17 @@
 This plugin enables VideoJS to play [VAST](https://www.iab.net/vast) advertisement videos. This plugin is a backend integration on top of the [videojs-contrib-ads](https://github.com/videojs/videojs-contrib-ads) plugin. This codebase was originally inspired by [videojs-vast-plugin](https://github.com/theonion/videojs-vast-plugin).
 
 ## Features
-- VAST 2.0 support and partial VAST 3.0 support
-- Preroll support
-- Multiple companion banner support
-- Multiple ADs per AD break
-- Multiple retries per AD break
-- Linear [VPAID](http://www.iab.net/vpaid) support
-- Custom Flash-based XMLHttpRequest support to work around AD servers that lack CORS configuration
+- [x] VAST 2.0 support and partial VAST 3.0 support
+- [x] Preroll support
+- [x] Multiple companion banner support
+- [x] Multiple ADs per AD break
+- [x] Multiple retries per AD break
+- [x] Linear [VPAID](http://www.iab.net/vpaid) support
+- [x] Custom Flash-based XMLHttpRequest support to work around AD servers that lack CORS configuration
+- [ ] Midroll support
+- [ ] Postroll support
+- [ ] VAST 3 AD pod support
+- [ ] VMAP support
 
 ## Development
 ```bash
@@ -72,13 +76,6 @@ videojs('myvideo', {
 - `bitrate` (default: 1000)
 
 ## Flash VPAID Media Tech Options
-
-## Roadmap
-
-- Midroll support
-- Postroll support
-- VAST 3 AD pod support
-- VMAP support
 
 ## Credit
 - This codebase was forked from [videojs-vast-plugin](https://github.com/theonion/videojs-vast-plugin).
