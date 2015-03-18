@@ -349,7 +349,7 @@
       // load linear ad sources and start playing them
       _player.src(_sources);
 
-      if (_tracker && !_sourceContainsVPAID(_sources)) {
+      if (_tracker && _player.techName.indexOf('Vpaid') !== 0) {
         _player.on('click', _adClick);
         _addSkipBtn();
       }

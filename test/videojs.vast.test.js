@@ -81,7 +81,7 @@
       });
     });
 
-    it('should play a preroll AD before playing the content', function(done) {
+    it('should play a preroll from start to finish', function(done) {
       this.timeout(20000);
 
       playerOptions.plugins['vast'] = { url: sampleVast, customURLHandler: null };
@@ -91,7 +91,9 @@
 
         player.one('adstart', function() {
           player.one('adend', function() {
-            done();
+            player.one('play', function() {
+              done();
+            });
           });
         });
 
