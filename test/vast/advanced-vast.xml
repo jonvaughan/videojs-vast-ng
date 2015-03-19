@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="vast.xsd" version="2.0">
+ <Ad id="289186093">
+  <InLine>
+   <AdSystem>DCM</AdSystem>
+   <AdTitle>In-Stream Video</AdTitle>
+   <Error><![CDATA[http://fake.adserver.local/error]]></Error>
+   <Impression><![CDATA[http://fake.adserver.local/impression]]></Impression>
+   <Creatives>
+    <Creative id="61890687" sequence="1">
+     <Linear>
+      <Duration>00:00:30</Duration>
+      <TrackingEvents>
+       <Tracking event="start"><![CDATA[http://fake.adserver.local/tracking/start]]></Tracking>
+       <Tracking event="firstQuartile"><![CDATA[http://fake.adserver.local/tracking/firstQuartile]]></Tracking>
+       <Tracking event="midpoint"><![CDATA[http://fake.adserver.local/tracking/midpoint]]></Tracking>
+       <Tracking event="thirdQuartile"><![CDATA[http://fake.adserver.local/tracking/thirdQuartile]]></Tracking>
+       <Tracking event="complete"><![CDATA[http://fake.adserver.local/tracking/complete]]></Tracking>
+       <Tracking event="mute"><![CDATA[http://fake.adserver.local/tracking/mute]]></Tracking>
+       <Tracking event="unmute"><![CDATA[http://fake.adserver.local/tracking/unmute]]></Tracking>
+       <Tracking event="pause"><![CDATA[http://fake.adserver.local/tracking/pause]]></Tracking>
+       <Tracking event="fullscreen"><![CDATA[http://fake.adserver.local/tracking/fullscreen]]></Tracking>
+      </TrackingEvents>
+      <AdParameters><![CDATA[]]></AdParameters>
+      <VideoClicks>
+       <ClickThrough><![CDATA[http://fake.adserver.local/tracking/clickThrough]]></ClickThrough>
+      </VideoClicks>
+      <MediaFiles>
+       <MediaFile delivery="progressive" width="640" height="480" type="application/x-shockwave-flash" apiFramework="VPAID"><![CDATA[http://fake.adserver.local/media/vpaid1video.swf?adTagUrl=embedded&embedAdsResponse=1]]></MediaFile>
+       <MediaFile delivery="progressive" width="640" height="360" type="video/mp4" bitrate="474" scalable="false" maintainAspectRatio="false"><![CDATA[http://fake.adserver.local/media/small.mp4]]></MediaFile>
+      </MediaFiles>
+     </Linear>
+    </Creative>
+   </Creatives>
+   <Extensions>
+    <Extension type="dart">
+     <AdServingData>
+      <DeliveryData>
+       <GeoData><![CDATA[ct=US&st=CA&city=15771&dma=195&zp=92821&bw=3]]></GeoData>
+      </DeliveryData>
+     </AdServingData>
+    </Extension>
+   </Extensions>
+  </InLine>
+ </Ad>
+</VAST>

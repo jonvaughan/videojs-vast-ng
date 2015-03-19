@@ -71,6 +71,7 @@ module.exports = function(grunt) {
           'karma.conf.js',
           'src/js/*.js',
           'test/*.js',
+          'test/vast/*.xml',
           '.jshintrc'
         ],
         tasks: ['jshint', 'karma:dev:run']
@@ -81,7 +82,11 @@ module.exports = function(grunt) {
         src: [
           'http://techslides.com/demos/sample-videos/small.flv',
           'http://techslides.com/demos/sample-videos/small.mp4',
-          'http://techslides.com/demos/sample-videos/small.webm'
+          'http://techslides.com/demos/sample-videos/small.webm',
+          'http://download.wavetlan.com/SVV/Media/HTTP/H264/Other_Media/H264_test8_voiceclip_mp4_480x320.mp4',
+
+          // live rail
+          'http://cdn.liverail.com/adasset4/1331/229/7969/lo.mp4'
         ],
         dest: 'test/media'
       }

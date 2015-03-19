@@ -63,8 +63,9 @@ videojs('myvideo', {
 ## Vast Plugin Options
 - `url` (required): a URL to the xml file.
 - `skip` (default: 5): how long until the user can skip the ad. Defaults to 5, and a negative number will disable it.
-- `customURLHandler` (default: Object): The default enable Flash-based XMLHttpRequest when requesting a VAST response.
+- `customURLHandler` (default: null): Optional parameter to allow using a custom URLHandler for making requests for VAST responses through the vast-client. You can set this value to `videojs.SwfURLHandler()` to get a CrossXHR based URLHandler.
   Set this value to `false` to disable.
+- `vastTimeout` (default: 10000): The max milliseconds to with for a VAST response.
 - `maxAdAttempts` (default: 1): Max number of attempts at playing an AD at any given AD break.
 - `maxAdCount` (default: 1): Max number of ADs to play at any given AD break.
 - `adParameters` (default: {}): A key-value map to be converted into querystring parameters to be appended onto the

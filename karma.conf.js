@@ -6,6 +6,7 @@ module.exports = function(config) {
     browsers: ['PhantomJS'],
     frameworks: ['mocha', 'sinon', 'chai'],
     browsers: ['Chrome'],
+    port: 9876,
 
     // If browser does not capture in given timeout [ms], kill it
     captureTimeout: 60000,

@@ -1,26 +1,30 @@
 (function (window, document, videojs, expect, assert, spy, match, undefined) {
   'use strict';
 
+  var
+    localhostMp4Vast = 'base/test/vast/localhost-mp4.xml?id=1',
+    localhostMp4Vast2 = 'base/test/vast/localhost-mp4.xml?id=2',
+    localhostMediaFileNotFoundVast = 'base/test/vast/localhost-mediafile-notfound',
+    sampleMp4 = {
+      src: 'base/test/media/small.mp4',
+      type: 'video/mp4'
+    },
+    sampleWebm = {
+      src: 'base/test/media/small.webm',
+      type: 'video/webm'
+    },
+    playerId = 'vid';
+
   describe('videojs.vast', function() {
     var
       player,
-      videoEl,
-      sampleVast = 'base/test/vast/sample-vast.xml?id=1',
-      sampleVast2 = 'base/test/vast/sample-vast.xml?id=2',
-      sampleMp4 = {
-        src: 'base/test/media/small.mp4',
-        type: 'video/mp4'
-      },
-      sampleWebm = {
-        src: 'base/test/media/small.webm',
-        type: 'video/webm'
-      },
-      playerId = 'vid';
-
+      videoEl;
 
     var playerOptions, vastClientGetSpy;
 
     beforeEach(function() {
+      vastClientGetSpy = spy(DMVAST.client, 'get');
+
       videoEl = document.createElement('video');
       videoEl.setAttribute('id', playerId);
       document.body.appendChild(videoEl);
@@ -31,12 +35,9 @@
           'ads': { }
         }
       };
-
-      vastClientGetSpy = spy(DMVAST.client, 'get');
     });
 
     afterEach(function(done) {
-      vastClientGetSpy.restore();
       // setTimeout hack around a .dispose() bug:
       // https://github.com/videojs/video.js/issues/1484
       setTimeout(function() {
@@ -51,27 +52,36 @@
 
         videoEl = null;
 
+        vastClientGetSpy.restore();
+
         done();
       }, 100);
     });
 
     it('should switch preroll when new content updates', function(done) {
-      this.timeout(8000);
+      this.timeout(2000);
 
-      playerOptions.plugins['vast'] = { url: sampleVast, customURLHandler: null };
+      playerOptions.plugins['vast'] = {
+        url: localhostMp4Vast,
+        customURLHandler: null
+      };
 
       videojs(videoEl, playerOptions, function() {
         player = this;
 
+        player.one(['adscanceled', 'adserror'], function() {
+          done('adscanceled triggered');
+        });
+
         player.one('play', function() {
           player.one('play', function() {
-            vastClientGetSpy.calledWithMatch(sampleVast2, match.func);
+            vastClientGetSpy.calledWithMatch(localhostMp4Vast2, match.func);
             done();
           });
 
-          vastClientGetSpy.calledWithMatch(sampleVast, match.func);
+          vastClientGetSpy.calledWithMatch(localhostMp4Vast, match.func);
 
-          player.vast.url(sampleVast2);
+          player.vast.url(localhostMp4Vast2);
           player.src(sampleWebm);
           player.play();
         });
@@ -81,18 +91,63 @@
       });
     });
 
-    it('should play a preroll from start to finish', function(done) {
-      this.timeout(20000);
+    it('should gracefully skip a preroll if the media file is not found', function(done) {
+      this.timeout(12000);
 
-      playerOptions.plugins['vast'] = { url: sampleVast, customURLHandler: null };
+      playerOptions.plugins['vast'] = {
+        url: localhostMediaFileNotFoundVast,
+        customURLHandler: null,
+        vastTimeout: 1000
+      };
 
       videojs(videoEl, playerOptions, function() {
         player = this;
 
-        player.one('adstart', function() {
-          player.one('adend', function() {
-            player.one('play', function() {
-              done();
+        player.one(['adscanceled', 'adserror'], function() {
+          done();
+        });
+
+        player.one('adsready', function() {
+          player.one('vastrequested', function() {
+            player.one('adstart', function() {
+              done('the ad should not have played!');
+            });
+          });
+        });
+
+        player.src(sampleMp4);
+        player.play();
+      });
+    });
+
+    it('should play a preroll request from start to finish and fire the proper VAST events', function(done) {
+      this.timeout(12000);
+
+      playerOptions.plugins['vast'] = {
+        url: localhostMp4Vast,
+        customURLHandler: null,
+        vastTimeout: 1000
+      };
+
+      videojs(videoEl, playerOptions, function() {
+        player = this;
+
+        player.one(['adscanceled', 'adserror'], function() {
+          done('adscanceled triggered');
+        });
+
+        player.one('adsready', function() {
+          player.one('vastrequested', function() {
+            player.one('adstart', function() {
+              player.one('play', function() {
+                player.one('adend', function() {
+                  player.one('play', function() {
+                    expect(player.src()).to.match(/test\/media\/small\.mp4$/);
+                    done();
+                  });
+                });
+                expect(player.src()).to.match(/test\/media\/H264_test8_voiceclip_mp4_480x320\.mp4$/);
+              });
             });
           });
         });

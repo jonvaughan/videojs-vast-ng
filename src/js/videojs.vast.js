@@ -117,7 +117,7 @@
           });
         },
         errorFn = function(e) {
-          videojs.log.error('vast', 'event', 'error', e);
+          // videojs.log.error('vast', 'event', 'error');
           // Inform ad server we couldn't play the media file for this ad
           dmvast.util.track(t.ad.errorURLTemplates, {ERRORCODE: 405});
           errorOccurred = true;
@@ -349,6 +349,8 @@
       // load linear ad sources and start playing them
       _player.src(_sources);
 
+      if (options.debug) { videojs.log('vast', 'startAd', 'ad src: ' + _player.src()); }
+
       if (_tracker && _player.techName.indexOf('Vpaid') !== 0) {
         _player.on('click', _adClick);
         _addSkipBtn();
@@ -375,7 +377,17 @@
         return;
       }
 
-      dmvast.client.get(options.url, { urlhandler: options.customURLHandler }, function(response) {
+      if (options.debug && options.customURLHandler) {
+        videojs.log('vast', 'loadVAST', 'using custom URLHandler');
+      }
+
+      var getOptions = {
+        withCredentials: true,
+        urlhandler: options.customURLHandler,
+        timeout: options.vastTimeout
+      };
+
+      dmvast.client.get(options.url, getOptions, function(response) {
         if (options.debug) { videojs.log('vast', 'loadVAST', 'response', response); }
 
         if (response) {
@@ -450,6 +462,8 @@
         // no ads found: lets cancel the ad break
         _player.trigger('adscanceled');
       });
+
+      _player.trigger('vastrequested');
     };
 
     var _unloadVAST = function() {
@@ -539,7 +553,12 @@
 
     _player.on('contentupdate', function(e) {
       if (options.debug) { videojs.log('vast', 'contentupdate', e.newValue); }
-      _player.trigger('adsready');
+
+      if (options.url) {
+        _player.trigger('adsready');
+      } else {
+        _player.trigger('adscanceled');
+      }
     });
 
     _player.on('readyforpreroll', function() {
@@ -555,10 +574,14 @@
       skip: 5,
       maxAdAttempts: 1,
       maxAdCount: 1,
-      adParameters: {}
+      adParameters: {},
+      vastTimeout: 5000
     }, options);
 
-    options.customURLHandler = videojs.SwfURLHandler({ debug: options.debug });
+    // default to using a custom swf handler
+    options = videojs.util.mergeOptions({
+      customURLHandler: videojs.SwfURLHandler({ debug: options.debug })
+    }, options);
   }
 
   videojs.plugin('vast', vast);

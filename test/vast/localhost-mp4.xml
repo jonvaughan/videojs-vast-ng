@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="vast.xsd" version="2.0">
+ <Ad id="289186093">
+  <InLine>
+   <AdSystem>DCM</AdSystem>
+   <AdTitle>In-Stream Video</AdTitle>
+   <Error><![CDATA[http://localhost:9876/error]]></Error>
+   <Impression><![CDATA[http://localhost:9876/impression]]></Impression>
+   <Creatives>
+    <Creative id="61890687" sequence="1">
+     <Linear>
+      <Duration>00:00:10</Duration>
+      <TrackingEvents>
+       <Tracking event="start"><![CDATA[http://localhost:9876/tracking/start]]></Tracking>
+       <Tracking event="firstQuartile"><![CDATA[http://localhost:9876/tracking/firstQuartile]]></Tracking>
+       <Tracking event="midpoint"><![CDATA[http://localhost:9876/tracking/midpoint]]></Tracking>
+       <Tracking event="thirdQuartile"><![CDATA[http://localhost:9876/tracking/thirdQuartile]]></Tracking>
+       <Tracking event="complete"><![CDATA[http://localhost:9876/tracking/complete]]></Tracking>
+       <Tracking event="mute"><![CDATA[http://localhost:9876/tracking/mute]]></Tracking>
+       <Tracking event="unmute"><![CDATA[http://localhost:9876/tracking/unmute]]></Tracking>
+       <Tracking event="pause"><![CDATA[http://localhost:9876/tracking/pause]]></Tracking>
+       <Tracking event="fullscreen"><![CDATA[http://localhost:9876/tracking/fullscreen]]></Tracking>
+      </TrackingEvents>
+      <AdParameters><![CDATA[]]></AdParameters>
+      <VideoClicks>
+       <ClickThrough><![CDATA[http://localhost:9876/tracking/clickThrough]]></ClickThrough>
+      </VideoClicks>
+      <MediaFiles>
+       <MediaFile delivery="progressive" width="480" height="320" type="video/mp4" bitrate="520" scalable="false" maintainAspectRatio="false"><![CDATA[http://localhost:9876/base/test/media/H264_test8_voiceclip_mp4_480x320.mp4]]></MediaFile>
+      </MediaFiles>
+     </Linear>
+    </Creative>
+   </Creatives>
+   <Extensions>
+    <Extension type="dart">
+     <AdServingData>
+      <DeliveryData>
+       <GeoData><![CDATA[ct=US&st=CA&city=15771&dma=195&zp=92821&bw=3]]></GeoData>
+      </DeliveryData>
+     </AdServingData>
+    </Extension>
+   </Extensions>
+  </InLine>
+ </Ad>
+</VAST>
