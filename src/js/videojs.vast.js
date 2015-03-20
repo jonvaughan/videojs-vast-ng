@@ -387,7 +387,23 @@
         timeout: options.vastTimeout
       };
 
-      dmvast.client.get(options.url, getOptions, function(response) {
+      // Construct querystring from key-value object
+      var buildAdParameters = function() {
+        var paramString = "";
+        for (var key in options.adParameters) {
+          if (options.adParameters.hasOwnProperty(key)) {
+            paramString += (key + '=' + options.adParameters[key]);
+            videojs.log('vast', 'adParameters', (key + '=' + options.adParameters[key]));
+          }
+        }
+        return paramString.length > 0 ? ('?'+paramString) : '';
+      };
+
+      var constructUrl = function() {
+        return options.url + buildAdParameters();
+      };
+
+      dmvast.client.get(constructUrl(), getOptions, function(response) {
         if (options.debug) { videojs.log('vast', 'loadVAST', 'response', response); }
 
         if (response) {
@@ -518,6 +534,14 @@
         return options.url;
       } else {
         options.url = url;
+      }
+    };
+
+    _player.vast.adParameters = function(adParameters) {
+      if (adParameters === undefined) {
+        return options.adParameters;
+      } else {
+        options.adParameters = adParameters;
       }
     };
 
