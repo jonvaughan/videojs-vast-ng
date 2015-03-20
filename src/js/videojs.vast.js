@@ -382,7 +382,7 @@
       }
 
       var getOptions = {
-        withCredentials: true,
+        // withCredentials: true,
         urlhandler: options.customURLHandler,
         timeout: options.vastTimeout
       };
