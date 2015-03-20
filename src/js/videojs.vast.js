@@ -390,12 +390,16 @@
       // Construct querystring from key-value object
       var buildAdParameters = function() {
         var paramString = "";
-        for (var key in options.adParameters) {
-          if (options.adParameters.hasOwnProperty(key)) {
-            paramString += (key + '=' + options.adParameters[key]);
-            videojs.log('vast', 'adParameters', (key + '=' + options.adParameters[key]));
+
+        if (typeof(options.adParameters) === "object") {
+          for (var key in options.adParameters) {
+            if (options.adParameters.hasOwnProperty(key)) {
+              paramString += (key + '=' + options.adParameters[key]);
+              videojs.log('vast', 'adParameters', (key + '=' + options.adParameters[key]));
+            }
           }
         }
+
         return paramString.length > 0 ? ('?'+paramString) : '';
       };
 
