@@ -389,13 +389,30 @@
 
       // Construct querystring from key-value object
       var buildAdParameters = function() {
-        var paramString = "";
+        var
+          paramString = "",
+          encodedKey, value, encodedVal, pair;
 
         if (typeof(options.adParameters) === "object") {
           for (var key in options.adParameters) {
             if (options.adParameters.hasOwnProperty(key)) {
-              paramString += (key + '=' + options.adParameters[key]);
-              videojs.log('vast', 'adParameters', (key + '=' + options.adParameters[key]));
+
+              value = options.adParameters[key];
+
+              // Only work with keys that are string, and values that
+              // are strings, boolean, or numbers
+              if ( typeof(key) === 'string' &&
+                ['boolean','string','number'].indexOf(typeof(value)) !== -1) {
+
+                encodedKey = encodeURIComponent(key);
+                encodedVal = encodeURIComponent(options.adParameters[key])
+                pair = [encodedKey,encodedVal].join('=');
+                paramString += pair;
+                videojs.log('vast', 'adParameters', pair);
+
+              } else {
+                videojs.log('vast', 'INVALID adParameters', key, 'IGNORED');
+              }
             }
           }
         }
