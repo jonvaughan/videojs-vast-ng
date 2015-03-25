@@ -23,7 +23,7 @@
       </TrackingEvents>
       <AdParameters><![CDATA[]]></AdParameters>
       <VideoClicks>
-       <ClickThrough><![CDATA[http://localhost:9876/tracking/clickThrough]]></ClickThrough>
+       <ClickThrough><![CDATA[http://localhost:9876/clickThrough]]></ClickThrough>
       </VideoClicks>
       <MediaFiles>
        <MediaFile delivery="progressive" width="480" height="320" type="video/mp4" bitrate="520" scalable="false" maintainAspectRatio="false"><![CDATA[http://localhost:9876/base/test/media/H264_test8_voiceclip_mp4_480x320.mp4]]></MediaFile>

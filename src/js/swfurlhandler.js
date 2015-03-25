@@ -1,4 +1,4 @@
-(function(window, videojs, CrossXHR, undefined) {
+(function(window, videojs, CrossXHR, DMVAST, undefined) {
   'use strict';
   var _parseXml;
 
@@ -18,7 +18,7 @@
   }
 
   // custom url handler for requesting VAST tags to bypass CORS problems
-  videojs.SwfURLHandler = function(options) {
+  DMVAST.SwfURLHandler = function(options) {
     return {
       supported: function() {
         return CrossXHR && videojs.Flash.isSupported();
@@ -44,4 +44,4 @@
       }
     };
   };
-})(window, videojs, CrossXHR);
+})(window, videojs, CrossXHR, DMVAST);

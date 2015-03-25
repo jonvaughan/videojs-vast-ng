@@ -23,6 +23,12 @@ module.exports = function(grunt) {
         'test/*.js'
       ]
     },
+    jscs: {
+      src: [
+        'src/js/*.js',
+        'test/*.js'
+      ]
+    },
     concat: {
       options: {
         banner: '<%= meta.banner %>'
@@ -49,9 +55,9 @@ module.exports = function(grunt) {
         configFile: 'karma.ci.conf.js'
       },
       unit: {
+        singleRun: true,
       },
       dev: {
-        singleRun: false,
         background: true
       }
     },
@@ -64,7 +70,8 @@ module.exports = function(grunt) {
     watch: {
       karma: {
         options: {
-          reload: true
+          reload: true,
+          atBegin: true
         },
         files: [
           'Gruntfile.js',
@@ -98,8 +105,8 @@ module.exports = function(grunt) {
   grunt.initConfig(gruntConfig);
 
   grunt.registerTask('curl-test-files', ['curl-dir:test-media-files']);
-  grunt.registerTask('test', ['jshint', 'karma:unit']);
+  grunt.registerTask('test', ['jshint', 'jscs', 'karma:unit']);
   grunt.registerTask('dev', ['karma:dev:start', 'watch']);
-  grunt.registerTask('ci', ['jshint', 'karma:ci']);
-  grunt.registerTask('default', ['jshint', 'concat', 'uglify']);
+  grunt.registerTask('ci', ['jshint', 'jscs', 'karma:ci']);
+  grunt.registerTask('default', ['jshint', 'jscs', 'concat', 'uglify']);
 };

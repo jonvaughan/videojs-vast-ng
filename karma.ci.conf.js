@@ -52,6 +52,7 @@ module.exports = function(config) {
       'bower_components/video.js/dist/video-js/video.novtt.dev.js',
       'bower_components/videojs-contrib-ads/src/videojs.ads.css',
       'bower_components/videojs-contrib-ads/src/videojs.ads.js',
+      'src/js/util.js',
       'src/js/crossxhr.js',
       'src/js/vpaidjs.js',
       'src/js/vpaidflash.js',

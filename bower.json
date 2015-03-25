@@ -7,6 +7,7 @@
   ],
   "description": "A VAST / VPAID AD plugin for VideoJS",
   "main": [
+    "src/js/util.js",
     "src/js/crossxhr.js",
     "src/js/vpaidjs.js",
     "src/js/vpaidflash.js",

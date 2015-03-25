@@ -94,6 +94,7 @@
       return false;
     };
 
+
     var _setupTrackerEvents = function() {
       var
         errorOccurred = false,
@@ -102,36 +103,40 @@
           if (options.debug) { videojs.log('vast', 'event', 'canplay'); }
           _tracker.load();
         },
+        durationchangeFn = function(e) {
+          t.assetDuration = _player.duration();
+        },
         timeupdateFn = function() {
-          if (isNaN(t.assetDuration)) {
-            t.assetDuration = _player.duration();
-          }
           t.setProgress(_player.currentTime());
         },
+        playFn = function() {
+          t.setPaused(false);
+        },
         pauseFn = function(e) {
-          if (options.debug) { videojs.log('vast', 'event', 'pause'); }
           t.setPaused(true);
-          _player.one('play', function() {
-            if (options.debug) { videojs.log('vast', 'event', 'pauseFn', 'play'); }
-            t.setPaused(false);
-          });
         },
         errorFn = function(e) {
           // videojs.log.error('vast', 'event', 'error');
           // Inform ad server we couldn't play the media file for this ad
           dmvast.util.track(t.ad.errorURLTemplates, {ERRORCODE: 405});
           errorOccurred = true;
-          _player.trigger('ended');
+          _player.trigger('adserror');
         };
 
       _player.on('canplay', canplayFn);
+      _player.on('durationchange', durationchangeFn);
       _player.on('timeupdate', timeupdateFn);
+      _player.on('play', playFn);
       _player.on('pause', pauseFn);
       _player.on('error', errorFn);
 
       _player.one('adend', function() {
+
+        console.log("WTFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
         _player.off('canplay', canplayFn);
+        _player.off('durationchange', durationchangeFn);
         _player.off('timeupdate', timeupdateFn);
+        _player.off('play', playFn);
         _player.off('pause', pauseFn);
         _player.off('error', errorFn);
 
@@ -183,7 +188,7 @@
       }
 
       if (_skipBtn) {
-        videojs.log.warn('vast', 'init ui', 'skip button already exists. removing it first');
+        console.error('vast', 'init ui', 'skip button already exists. removing it first');
         _removeSkipBtn();
       }
 
@@ -284,7 +289,10 @@
       if (options.debug) { videojs.log('vast', 'startLinearAdBreak'); }
 
       _player.ads.startLinearAdMode();
-      _showContentControls = _player.controls();
+
+      if (_showContentControls === undefined) {
+        _showContentControls = _player.controls();
+      }
 
       // save state of player controls so we can restore them after the ad break
       if (_showContentControls) {
@@ -297,8 +305,9 @@
 
       // restore state of player controls before the ad break
       if (_showContentControls) {
-        if (options.debug) { videojs.log('vast', 'unloadAd', 'enable controls'); }
+        if (options.debug) { videojs.log('vast', 'endLinearAdBreak', 'enable controls'); }
         _player.controls(true);
+        _showContentControls = undefined;
       }
 
       _player.ads.endLinearAdMode();
@@ -317,17 +326,19 @@
         videojs.log.warn('vast', 'endAd', 'not playing an AD! state: ' + _player.ads.state);
         return;
       } else {
-        if (options.debug) { videojs.log('adbreak', _adbreak); }
+        if (options.debug) { videojs.log('vast', 'endAd', 'adbreak: ', _adbreak); }
       }
 
       _player.off('click', _adClick);
       _removeSkipBtn();
 
+      _unloadVAST();
+
       // Decide if we want to call another AD to simulate VAST 3 AD Pods
       if (forceEndAdBreak === true || _adbreak.attempts >= options.maxAdAttempts || _adbreak.count >= options.maxAdCount) {
         _endLinearAdBreak();
       } else {
-        _loadVAST();
+        _loadVAST(true);
       }
     };
 
@@ -367,7 +378,7 @@
       _player.play();
     };
 
-    var _loadVAST = function() {
+    var _loadVAST = function(immediatePlayback) {
       if (options.debug) { videojs.log('vast', 'loadVAST'); }
 
       _adbreak.attempts++;
@@ -387,44 +398,20 @@
         timeout: options.vastTimeout
       };
 
-      // Construct querystring from key-value object
-      var buildAdParameters = function() {
-        var
-          paramString = "",
-          encodedKey, value, encodedVal, pair;
+      // TODO: fails if options.url already contains querystring values
+      var url;
 
-        if (typeof(options.adParameters) === "object") {
-          for (var key in options.adParameters) {
-            if (options.adParameters.hasOwnProperty(key)) {
+      if (!videojs.util.isEmptyObject(options.adParameters)) {
+        url = options.url + '?' + videojs.util.param(options.adParameters);
+      } else {
+        url = options.url;
+      }
 
-              value = options.adParameters[key];
+      // if (options.debug) {
+      //   videojs.log('vast', 'loadVAST', 'url: ' + url);
+      // }
 
-              // Only work with keys that are string, and values that
-              // are strings, boolean, or numbers
-              if ( typeof(key) === 'string' &&
-                ['boolean','string','number'].indexOf(typeof(value)) !== -1) {
-
-                encodedKey = encodeURIComponent(key);
-                encodedVal = encodeURIComponent(options.adParameters[key])
-                pair = [encodedKey,encodedVal].join('=');
-                paramString += pair;
-                videojs.log('vast', 'adParameters', pair);
-
-              } else {
-                videojs.log('vast', 'INVALID adParameters', key, 'IGNORED');
-              }
-            }
-          }
-        }
-
-        return paramString.length > 0 ? ('?'+paramString) : '';
-      };
-
-      var constructUrl = function() {
-        return options.url + buildAdParameters();
-      };
-
-      dmvast.client.get(constructUrl(), getOptions, function(response) {
+      dmvast.client.get(url, getOptions, function(response) {
         if (options.debug) { videojs.log('vast', 'loadVAST', 'response', response); }
 
         if (response) {
@@ -483,8 +470,12 @@
             if (foundCreative) {
               if (options.debug) { videojs.log('vast', 'loadVAST', 'found VAST'); }
 
-              // vast tracker and content is ready to go, trigger event
-              _startAd();
+              if (immediatePlayback) {
+                _startAd();
+              } else {
+                // vast tracker and content is ready to go, trigger event
+                _player.trigger('adsready');
+              }
               return;
             }
 
@@ -500,42 +491,53 @@
         _player.trigger('adscanceled');
       });
 
-      _player.trigger('vastrequested');
+      _player.trigger('vastrequesting');
     };
 
     var _unloadVAST = function() {
-      if (options.debug) { videojs.log('vast', 'unloadAd'); }
-
-      _endAd();
+      if (options.debug) { videojs.log('vast', 'unloadVAST'); }
 
       _sources = null;
       _companions = null;
       _tracker = null;
+
+      if (!_adbreak) {
+        videojs.log.error('vast', 'unloadVAST', 'assertion: adbreak should be set!');
+      }
     };
 
-    _player.vast.preroll = function() {
+    _player.vast.requestAdBreak = function() {
+      if (options.debug) { videojs.log('vast', 'requestAdBreak'); }
 
-      // reset these values on every ad break to support multiple
-      // ads per ad break
+      if (_player.ads.state !== 'ads-ready?') {
+        if (options.debug) { videojs.log('vast', 'requestAdBreak', 'ignored: ads state ' + _player.ads.triggerevent + ' -> ' + _player.ads.state); }
+        return;
+      } else {
+        console.warn('vast', 'requestAdBreak', 'state ' + _player.ads.triggerevent + ' -> ' + _player.ads.state);
+      }
+
+      // HACK: Find the source of the problem so we don't have to resort
+      // to this hackish code
+      if (_adbreak) {
+        _player.vast.ensureLeaveAdBreak();
+      }
+
       _adbreak = {
         attempts: 0,
         count: 0
       };
 
-      _loadVAST();
-    };
-
-    _player.vast.midroll = function() {
-      throw new Error('midroll not implemented');
-    };
-
-    _player.vast.postroll = function() {
-      throw new Error('postroll not implemented');
+      if (options.url) {
+        _loadVAST();
+      } else {
+        _player.trigger('adscanceled');
+      }
     };
 
     _player.vast.ensureLeaveAdBreak = function() {
+      if (options.debug) { videojs.log('vast', 'ensureLeaveAdBreak'); }
+
       _endAd(true);
-      _unloadVAST();
     };
 
     _player.vast.tracker = function() {
@@ -597,35 +599,66 @@
     }
 
     _player.on('contentupdate', function(e) {
-      if (options.debug) { videojs.log('vast', 'contentupdate', e.newValue); }
+      if (options.debug) { videojs.log('vast', 'contentupdate', 'ads.state: ' + _player.ads.state + ', newValue: ' + e.newValue); }
 
-      if (options.url) {
-        _player.trigger('adsready');
-      } else {
-        _player.trigger('adscanceled');
+      // HACK: Chrome will sometimes fire contentupdate twice. Most browsers will have
+      // e.newValue starting with 'http://...', but Chrome will sometimes fire two contentupdate
+      // events from with e.newValue of 'ocean.mp4' and 'http://localhost:9000/ocean.mp4'.
+      // This is not an issue if the src paths are absolute paths.
+      if (e.newValue.indexOf('http') !== 0) {
+        videojs.log.warn('HACK: detected possible duplicate contentupdate! \'' + e.oldValue + '\' to \'' + e.newValue + '\'');
+        return;
       }
+
+      if (!_player.paused()) {
+        _player.vast.requestAdBreak();
+      }
+    });
+
+    _player.on('contentended', function(e) {
+      if (options.debug) { videojs.log('vast', 'contentended', 'ads.state: ' + _player.ads.state + ', newValue: ' + e.newValue); }
+
+      if (_player.ads.state === 'postroll?') {
+        // TODO: postroll
+      }
+    });
+
+    _player.on('play', function() {
+      if (options.debug) { videojs.log('vast', 'play'); }
+
+      if (_adbreak) {
+        if (options.debug) { videojs.log('vast', 'play', 'ignored: ad break already going running'); }
+        return;
+      }
+
+      _player.vast.requestAdBreak();
+    });
+
+    _player.on('contentplayback', function(e) {
+      if (options.debug) { videojs.log('vast', 'contentplayback', e.triggerevent); }
     });
 
     _player.on('readyforpreroll', function() {
       if (options.debug) { videojs.log('vast', 'readyforpreroll'); }
 
-      // set up and start playing preroll
-      _player.vast.preroll();
+      if (!_adbreak) {
+        if (options.debug) { videojs.log.error('vast', 'readyforpreroll', 'no ad break found'); }
+        _player.trigger('adserror');
+        return;
+      }
+
+      _startAd();
     });
 
     // merge in default values
     options = videojs.util.mergeOptions({
       debug: false,
       skip: 5,
+      customURLHandler: null,
       maxAdAttempts: 1,
       maxAdCount: 1,
       adParameters: {},
       vastTimeout: 5000
-    }, options);
-
-    // default to using a custom swf handler
-    options = videojs.util.mergeOptions({
-      customURLHandler: videojs.SwfURLHandler({ debug: options.debug })
     }, options);
   }
 
