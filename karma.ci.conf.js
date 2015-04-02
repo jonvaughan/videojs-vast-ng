@@ -41,7 +41,7 @@ module.exports = function(config) {
   config.set({
     singleRun: true,
     autoWatch: false,
-    frameworks: ['mocha', 'sinon', 'chai'],
+    frameworks: ['mocha', 'sinon', 'chai', 'sinonChai'],
 
     files: [
       { pattern: 'test/vast/*', watched: true, served: true, included: false },

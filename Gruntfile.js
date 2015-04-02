@@ -27,7 +27,10 @@ module.exports = function(grunt) {
       src: [
         'src/js/*.js',
         'test/*.js'
-      ]
+      ],
+      options: {
+        config: ".jscsrc"
+      }
     },
     concat: {
       options: {
@@ -81,7 +84,7 @@ module.exports = function(grunt) {
           'test/vast/*.xml',
           '.jshintrc'
         ],
-        tasks: ['jshint', 'karma:dev:run']
+        tasks: ['jshint', 'jscs', 'karma:dev:run']
       }
     },
     'curl-dir': {
@@ -105,8 +108,8 @@ module.exports = function(grunt) {
   grunt.initConfig(gruntConfig);
 
   grunt.registerTask('curl-test-files', ['curl-dir:test-media-files']);
-  grunt.registerTask('test', ['jshint', 'jscs', 'karma:unit']);
+  grunt.registerTask('test', ['jshint', 'jscs:src', 'karma:unit']);
   grunt.registerTask('dev', ['karma:dev:start', 'watch']);
-  grunt.registerTask('ci', ['jshint', 'jscs', 'karma:ci']);
-  grunt.registerTask('default', ['jshint', 'jscs', 'concat', 'uglify']);
+  grunt.registerTask('ci', ['jshint', 'jscs:src', 'karma:ci']);
+  grunt.registerTask('default', ['jshint', 'jscs:src', 'concat', 'uglify']);
 };

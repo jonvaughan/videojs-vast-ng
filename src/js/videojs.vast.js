@@ -94,56 +94,70 @@
       return false;
     };
 
-
-    var _setupTrackerEvents = function() {
+    var richTracker = function(tracker) {
       var
         errorOccurred = false,
-        t = _tracker,
         canplayFn = function(e) {
-          if (options.debug) { videojs.log('vast', 'event', 'canplay'); }
-          _tracker.load();
+          if (options.debug) { videojs.log('vast', 'tracker', 'canplay'); }
+          tracker.load();
         },
         durationchangeFn = function(e) {
-          t.assetDuration = _player.duration();
+          if (options.debug) { videojs.log('vast', 'tracker', 'durationchange'); }
+          tracker.assetDuration = _player.duration();
         },
         timeupdateFn = function() {
-          t.setProgress(_player.currentTime());
+          tracker.setProgress(_player.currentTime());
         },
         playFn = function() {
-          t.setPaused(false);
+          if (options.debug) { videojs.log('vast', 'tracker', 'play'); }
+          tracker.setPaused(false);
         },
         pauseFn = function(e) {
-          t.setPaused(true);
+          if (options.debug) { videojs.log('vast', 'tracker', 'pause'); }
+          tracker.setPaused(true);
         },
         errorFn = function(e) {
+          if (options.debug) { videojs.log('vast', 'tracker', 'error'); }
           // videojs.log.error('vast', 'event', 'error');
           // Inform ad server we couldn't play the media file for this ad
           dmvast.util.track(t.ad.errorURLTemplates, {ERRORCODE: 405});
           errorOccurred = true;
+          tracker.removeListeners();
           _player.trigger('adserror');
+        },
+        endedFn = function(e) {
+          if (options.debug) { videojs.log('vast', 'tracker', 'ended'); }
+
+          if (!errorOccurred) {
+            tracker.complete();
+          }
+
+          tracker.removeListeners();
         };
 
-      _player.on('canplay', canplayFn);
-      _player.on('durationchange', durationchangeFn);
-      _player.on('timeupdate', timeupdateFn);
-      _player.on('play', playFn);
-      _player.on('pause', pauseFn);
-      _player.on('error', errorFn);
+      tracker.addListeners = function() {
+        if (options.debug) { videojs.log('vast', 'tracker', 'addListeners'); }
+        _player.on('canplay', canplayFn);
+        _player.on('durationchange', durationchangeFn);
+        _player.on('timeupdate', timeupdateFn);
+        _player.on('play', playFn);
+        _player.on('pause', pauseFn);
+        _player.on('error', errorFn);
+        _player.on('ended', endedFn);
+      };
 
-      _player.one('adend', function() {
-
-        console.log("WTFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
+      tracker.removeListeners = function() {
+        if (options.debug) { videojs.log('vast', 'tracker', 'removeListeners'); }
         _player.off('canplay', canplayFn);
         _player.off('durationchange', durationchangeFn);
         _player.off('timeupdate', timeupdateFn);
         _player.off('play', playFn);
         _player.off('pause', pauseFn);
         _player.off('error', errorFn);
+        _player.off('ended', endedFn);
+      };
 
-        if (!errorOccurred) {
-          t.complete();
-        }
-      });
+      return tracker;
     };
 
     var _adClick = function() {
@@ -183,12 +197,12 @@
     var _addSkipBtn = function() {
       // add skip button
       if (options.skip < 0) {
-        if (options.debug) { videojs.log('vast', 'init ui', 'skip < 0, disabling skip button'); }
+        if (options.debug) { videojs.log('vast', 'addSkipBtn', 'skip < 0, disabling skip button'); }
         return;
       }
 
       if (_skipBtn) {
-        console.error('vast', 'init ui', 'skip button already exists. removing it first');
+        videojs.log.error('vast', 'addSkipBtn', 'skip button already exists. removing it first');
         _removeSkipBtn();
       }
 
@@ -226,6 +240,8 @@
     };
 
     var _updateSkipBtn = function() {
+      // if (options.debug) { videojs.log('vast', 'updateSkipBtn'); }
+
       if (!_skipBtn) {
         _removeSkipBtn();
         return;
@@ -286,7 +302,7 @@
     };
 
     var _startLinearAdBreak = function() {
-      if (options.debug) { videojs.log('vast', 'startLinearAdBreak'); }
+      if (options.debug) { videojs.log('vast', 'starting linear ad break', _player.ads.state); }
 
       _player.ads.startLinearAdMode();
 
@@ -301,11 +317,10 @@
     };
 
     var _endLinearAdBreak = function() {
-      if (options.debug) { videojs.log('vast', 'endLinearAdBreak'); }
+      if (options.debug) { videojs.log('vast', 'ending linear ad break', _player.ads.state); }
 
       // restore state of player controls before the ad break
       if (_showContentControls) {
-        if (options.debug) { videojs.log('vast', 'endLinearAdBreak', 'enable controls'); }
         _player.controls(true);
         _showContentControls = undefined;
       }
@@ -335,7 +350,9 @@
       _unloadVAST();
 
       // Decide if we want to call another AD to simulate VAST 3 AD Pods
-      if (forceEndAdBreak === true || _adbreak.attempts >= options.maxAdAttempts || _adbreak.count >= options.maxAdCount) {
+      if (forceEndAdBreak === true ||
+        _adbreak.attempts >= options.maxAdAttempts ||
+        _adbreak.count >= options.maxAdCount) {
         _endLinearAdBreak();
       } else {
         _loadVAST(true);
@@ -362,19 +379,20 @@
 
       if (options.debug) { videojs.log('vast', 'startAd', 'ad src: ' + _player.src()); }
 
+      // VPAID will handle it's own click events.
+      // TODO: make the vast plugin handle it
       if (_tracker && _player.techName.indexOf('Vpaid') !== 0) {
         _player.on('click', _adClick);
         _addSkipBtn();
       }
 
+      if (options.debug) { videojs.log('vast', 'using tech: ' + _player.techName); }
+
       if (_companions) {
         _updateCompanions();
       }
 
-      _setupTrackerEvents();
-
       _player.on('ended', _endAd);
-
       _player.play();
     };
 
@@ -443,7 +461,8 @@
                     _sources = sources;
                     foundCreative = true;
 
-                    _tracker = new dmvast.tracker(ad, creative);
+                    _tracker = richTracker(new dmvast.tracker(ad, creative));
+                    _tracker.addListeners();
                   }
 
                   break;
@@ -499,6 +518,11 @@
 
       _sources = null;
       _companions = null;
+
+      if (_tracker) {
+        _tracker.removeListeners();
+      }
+
       _tracker = null;
 
       if (!_adbreak) {
@@ -510,10 +534,9 @@
       if (options.debug) { videojs.log('vast', 'requestAdBreak'); }
 
       if (_player.ads.state !== 'ads-ready?') {
-        if (options.debug) { videojs.log('vast', 'requestAdBreak', 'ignored: ads state ' + _player.ads.triggerevent + ' -> ' + _player.ads.state); }
+        if (options.debug) { videojs.log('vast', 'requestAdBreak', 'ignored: ads state ' +
+          _player.ads.triggerevent + ' -> ' + _player.ads.state); }
         return;
-      } else {
-        console.warn('vast', 'requestAdBreak', 'state ' + _player.ads.triggerevent + ' -> ' + _player.ads.state);
       }
 
       // HACK: Find the source of the problem so we don't have to resort
@@ -599,14 +622,15 @@
     }
 
     _player.on('contentupdate', function(e) {
-      if (options.debug) { videojs.log('vast', 'contentupdate', 'ads.state: ' + _player.ads.state + ', newValue: ' + e.newValue); }
+      if (options.debug) { videojs.log('vast', 'contentupdate', 'ads.state: ' +
+        _player.ads.state + ', newValue: ' + e.newValue); }
 
       // HACK: Chrome will sometimes fire contentupdate twice. Most browsers will have
       // e.newValue starting with 'http://...', but Chrome will sometimes fire two contentupdate
       // events from with e.newValue of 'ocean.mp4' and 'http://localhost:9000/ocean.mp4'.
       // This is not an issue if the src paths are absolute paths.
       if (e.newValue.indexOf('http') !== 0) {
-        videojs.log.warn('HACK: detected possible duplicate contentupdate! \'' + e.oldValue + '\' to \'' + e.newValue + '\'');
+        videojs.log.warn('duplicate contentupdate! \'' + e.oldValue + '\' to \'' + e.newValue + '\'');
         return;
       }
 
@@ -616,7 +640,7 @@
     });
 
     _player.on('contentended', function(e) {
-      if (options.debug) { videojs.log('vast', 'contentended', 'ads.state: ' + _player.ads.state + ', newValue: ' + e.newValue); }
+      if (options.debug) { videojs.log('vast', 'contentended'); }
 
       if (_player.ads.state === 'postroll?') {
         // TODO: postroll

@@ -3,8 +3,7 @@ module.exports = function(config) {
     singleRun: false,
     autoWatch: false,
     logLevel: config.LOG_DEBUG,
-    browsers: ['PhantomJS'],
-    frameworks: ['mocha', 'sinon', 'chai'],
+    frameworks: ['mocha', 'sinon', 'chai', 'sinon-chai'],
     browsers: ['Chrome'],
     port: 9876,
 
@@ -26,7 +25,6 @@ module.exports = function(config) {
       'bower_components/videojs-contrib-ads/src/videojs.ads.css',
       'bower_components/videojs-contrib-ads/src/videojs.ads.js',
       'src/js/util.js',
-      'src/js/crossxhr.js',
       'src/js/vpaidjs.js',
       'src/js/vpaidflash.js',
       'src/js/swfurlhandler.js',

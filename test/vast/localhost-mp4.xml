@@ -21,7 +21,7 @@
        <Tracking event="pause"><![CDATA[http://localhost:9876/tracking/pause]]></Tracking>
        <Tracking event="fullscreen"><![CDATA[http://localhost:9876/tracking/fullscreen]]></Tracking>
       </TrackingEvents>
-      <AdParameters><![CDATA[]]></AdParameters>
+      <AdParameters><![CDATA[a=1&b=2]]></AdParameters>
       <VideoClicks>
        <ClickThrough><![CDATA[http://localhost:9876/clickThrough]]></ClickThrough>
       </VideoClicks>
