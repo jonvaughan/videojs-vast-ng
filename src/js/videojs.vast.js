@@ -354,10 +354,8 @@
       if (forceEndAdBreak === true ||
         _adbreak.attempts >= options.maxAdAttempts ||
         _adbreak.count >= options.maxAdCount) {
-        console.warn('forceEndAdBreak', _player.ads.state);
         _endLinearAdBreak();
       } else {
-        console.warn('LOAD_VAST', _player.ads.state);
         _loadVAST(true);
       }
     };
