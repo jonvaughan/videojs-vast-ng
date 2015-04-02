@@ -21,7 +21,9 @@
   DMVAST.SwfURLHandler = function(options) {
     return {
       supported: function() {
-        return CrossXHR && videojs.Flash.isSupported();
+        return CrossXHR
+          && videojs.Flash.isSupported()
+          && videojs.Flash.version()[0] >= 12;
       },
 
       get: function(url, options, cb) {
