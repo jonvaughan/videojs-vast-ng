@@ -16,13 +16,13 @@
     _player.vast = _player.vast || {};
 
     var _createSourceObjects = function(mediaFiles) {
-      var sourcesByFormat = {}, i, j, t, techName, tech, sbf, techOrder = _player.options().techOrder;
+      var sourcesByFormat = {}, i, j, to, techName, tech, sbf, techOrder = _player.options().techOrder;
 
       for (i = 0; i < techOrder.length; i++) {
-        t = techOrder[i];
-        techName = t.charAt(0).toUpperCase() + t.slice(1);
+        to = techOrder[i];
+        techName = to.charAt(0).toUpperCase() + to.slice(1);
         tech = window.videojs[techName];
-        sbf = sourcesByFormat[t] = [];
+        sbf = sourcesByFormat[to] = [];
 
         // Check if the current tech is defined before continuing
         if (!tech) {
@@ -121,7 +121,7 @@
           if (options.debug) { videojs.log('vast', 'tracker', 'error'); }
           // videojs.log.error('vast', 'event', 'error');
           // Inform ad server we couldn't play the media file for this ad
-          dmvast.util.track(t.ad.errorURLTemplates, {ERRORCODE: 405});
+          dmvast.util.track(tracker.ad.errorURLTemplates, {ERRORCODE: 405});
           errorOccurred = true;
           tracker.removeListeners();
           _player.trigger('adserror');
