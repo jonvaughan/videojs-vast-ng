@@ -21,7 +21,8 @@
   var
     localhostMp4Vast = 'base/test/vast/localhost-mp4.xml?id=1',
     localhostMp4Vast2 = 'base/test/vast/localhost-mp4.xml?id=2',
-    localhostMediaFileNotFoundVast = 'base/test/vast/localhost-mediafile-notfound',
+    localhostMediaFileNotFoundVast = 'base/test/vast/localhost-mediafile-notfound.xml',
+    emptyVast = 'base/test/vast/empty-vast.xml',
     sampleMp4 = {
       src: 'base/test/media/small.mp4',
       type: 'video/mp4'
@@ -187,10 +188,6 @@
           vastTimeout: 1000
         };
 
-        playerOptions.debug = true;
-        playerOptions.plugins.ads.debug = true;
-        playerOptions.plugins.vast.debug = true;
-
         var eventCount = {};
 
         var eventHandler = function(e) {
@@ -223,7 +220,6 @@
           player.one('adstart', function() {
 
             setTimeout(function() {
-              console.log('====> CLICKED');
               try {
                 expect(player.paused()).to.equal(false);
               } catch(e) {
@@ -234,15 +230,8 @@
 
           }); // end adstart
 
-          player.on('play', function() {
-            console.log('====> PLAY', player.ads.state);
-          });
-
           // a click event should pause the player and bring up a popup
           player.one('pause', function() {
-
-            console.log('====> PAUSED');
-
             setTimeout(function() {
 
               // assert only 1 window was opened
@@ -264,12 +253,7 @@
 
           }); // end pause
 
-          player.on('adend', function() {
-            console.log('====> ADEND', eventCount['adend']);
-          });
-
           player.one('contentplayback', function() {
-            console.log('====> contentplayback');
             setTimeout(function() {
               // confirm tracking events
               expect(trackSpy).to.have.callCount(8);
@@ -297,8 +281,41 @@
 
     describe('with bad VAST tags', function() {
 
-      it('should gracefully skip a preroll and play content if the media file is not found', function(done) {
-        this.timeout(12000);
+      it('should skip a preroll and play content if the VAST response is empty', function(done) {
+        this.timeout(3000);
+
+        playerOptions.plugins['vast'] = {
+          url: emptyVast,
+          customURLHandler: null,
+          vastTimeout: 1000
+        };
+
+        videojs(videoEl, playerOptions, function() {
+          player = this;
+
+          player.one(['adscanceled', 'adserror'], function() {
+            player.one('contentplayback', function() {
+              expect(player.src()).to.match(/test\/media\/small\.mp4$/);
+              expect(!player.paused()).to.equal(true);
+              done();
+            });
+          });
+
+          player.one('adsready', function() {
+            player.one('vastrequested', function() {
+              player.one('adstart', function() {
+                done('the ad should not have played!');
+              });
+            });
+          });
+
+          player.src(sampleMp4);
+          player.play();
+        });
+      });
+
+      it('should skip a preroll and play content if the media file returns HTTP 404 not found', function(done) {
+        this.timeout(3000);
 
         playerOptions.plugins['vast'] = {
           url: localhostMediaFileNotFoundVast,
@@ -310,8 +327,9 @@
           player = this;
 
           player.one(['adscanceled', 'adserror'], function() {
-            player.one('play', function() {
+            player.one('contentplayback', function() {
               expect(player.src()).to.match(/test\/media\/small\.mp4$/);
+              expect(!player.paused()).to.equal(true);
               done();
             });
           });

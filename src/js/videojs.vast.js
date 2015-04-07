@@ -119,11 +119,11 @@
         },
         errorFn = function(e) {
           if (options.debug) { videojs.log('vast', 'tracker', 'error'); }
-          // videojs.log.error('vast', 'event', 'error');
           // Inform ad server we couldn't play the media file for this ad
           dmvast.util.track(tracker.ad.errorURLTemplates, {ERRORCODE: 405});
           errorOccurred = true;
           tracker.removeListeners();
+          _player.vast.ensureLeaveAdBreak();
           _player.trigger('adserror');
         },
         endedFn = function(e) {
@@ -516,6 +516,7 @@
         }
 
         // no ads found: lets cancel the ad break
+        console.log("STATE: ", _player.ads.state);
         _player.trigger('adscanceled');
       });
 
