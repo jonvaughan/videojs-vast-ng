@@ -5,21 +5,25 @@
     right: 0;
     width: auto;
     background-color: #555;
-    color: #AAA;
+    color: #999;
     font-size: 12px;
     font-style: italic;
     line-height: 12px;
     padding: 10px;
     z-index: 2;
+    border-radius: 8px 0 0 8px;
+    border-width: 2px 0 2px 2px;
+    border-color: #999;
+    border-style: solid;
 }
 
 .vast-skip-button.enabled {
     display: block;
-    cursor: pointer;
-    color: #fff;
 }
 
 .vast-skip-button.enabled:hover {
     cursor: pointer;
+    color: #fff;
+    border-color: #fff;
     background: #333;
 }
