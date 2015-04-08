@@ -691,11 +691,13 @@
       if (options.debug) { videojs.log('vast', 'play'); }
 
       if (_adbreak) {
-        if (options.debug) { videojs.log('vast', 'play', 'ignored: ad break already going running'); }
+        if (options.debug) { videojs.log.warn('vast', 'play', 'ignored: ad break already going running'); }
         return;
       }
 
-      _player.vast.requestAdBreak(e);
+      if (_player.ads.state === 'ads-ready?') {
+        _player.vast.requestAdBreak(e);
+      }
     });
 
     _player.on('contentplayback', function(e) {
