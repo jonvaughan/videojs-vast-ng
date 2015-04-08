@@ -81,20 +81,6 @@
       return sources;
     };
 
-    var _sourceContainsVPAID = function(sources) {
-      if (!sources) {
-        return false;
-      }
-
-      for(var i=0; i<sources.length; i++) {
-        if (sources[i].apiFramework === 'VPAID') {
-          return true;
-        }
-      }
-
-      return false;
-    };
-
     var richTracker = function(tracker) {
       var
         errorOccurred = false,
@@ -210,16 +196,18 @@
       _skipBtn = videojs.Component.prototype.createEl('div', {
         className: 'vast-skip-button',
         onclick: function(e) {
-          if((' ' + _skipBtn.className + ' ').indexOf(' enabled ') >= 0) {
+          if(!_skipBtn.disabled && _skipBtn.className.indexOf(' enabled') !== -1) {
             _tracker.skip();
             _endAd();
           }
+
           if(window.Event.prototype.stopPropagation !== undefined) {
             e.stopPropagation();
           } else {
             return false;
           }
-        }
+        },
+        disabled: true
       });
 
       videojs.insertFirst(_skipBtn, _playerEl);
@@ -241,7 +229,7 @@
     };
 
     var _updateSkipBtn = function() {
-      if (options.debug) { videojs.log('vast', 'updateSkipBtn', _player.ads.state); }
+      // if (options.debug) { videojs.log('vast', 'updateSkipBtn', _player.ads.state); }
 
       if (!_skipBtn) {
         _removeSkipBtn();
@@ -251,12 +239,15 @@
       var timeLeft = Math.ceil(options.skip - _player.currentTime());
 
       if(timeLeft > 0) {
+        // determine if we should should the skip button
+        if(_skipBtn.className.indexOf(' enabled') === -1) {
+          _skipBtn.className += ' enabled';
+        }
+
         _skipBtn.innerHTML = 'AD#' + _adbreak.count + '/' + options.maxAdCount + ' Skip in ' + timeLeft + '...';
       } else {
-        if((' ' + _skipBtn.className + ' ').indexOf(' enabled ') === -1) {
-          _skipBtn.className += ' enabled';
-          _skipBtn.innerHTML = 'AD#' + _adbreak.count + '/' + options.maxAdCount + ' Skip';
-        }
+        _skipBtn.innerHTML = 'AD#' + _adbreak.count + '/' + options.maxAdCount + ' Skip';
+        _skipBtn.disabled = false;
       }
     };
 
@@ -369,8 +360,7 @@
 
       _adbreak.count++;
 
-      // HACK: Instead of unloading the tech, rewire all the events
-      // when src() is called
+      // HACK: Force the tech to be reloaded after the ad finishes
       if (_player['techName'] === 'Vpaidflash' && _player.ended()) {
         _player['techName'] = null;
       }
@@ -427,9 +417,13 @@
       var url;
 
       if (!videojs.util.isEmptyObject(options.adParameters)) {
-        url = options.url + '?' + videojs.util.param(options.adParameters);
+        url = options.url + (options.url.indexOf('?') !== -1 ? '?' : '&') + videojs.util.param(options.adParameters);
       } else {
         url = options.url;
+      }
+
+      if (options.debug) {
+        videojs.log('vast', 'loadVAST', 'ad requested: ' + url);
       }
 
       dmvast.client.get(url, getOptions, function(response) {
@@ -499,7 +493,7 @@
 
               if (immediatePlayback) {
                 if (options.debug) { videojs.log.warn('vast', 'loadVAST', 'immediate AD playback!'); }
-                setTimeout(_startAd, 1);
+                _startAd();
               } else {
                 // vast tracker and content is ready to go, trigger event
                 _player.trigger('adsready');
@@ -516,7 +510,6 @@
         }
 
         // no ads found: lets cancel the ad break
-        console.log("STATE: ", _player.ads.state);
         _player.trigger('adscanceled');
       });
 
