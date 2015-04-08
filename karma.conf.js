@@ -3,7 +3,7 @@ module.exports = function(config) {
     singleRun: false,
     autoWatch: false,
     logLevel: config.LOG_DEBUG,
-    frameworks: ['mocha', 'sinon', 'chai', 'sinon-chai'],
+    frameworks: ['mocha', 'sinon-chai', 'requirejs'],
     browsers: ['Chrome'],
     port: 9876,
 
@@ -16,9 +16,10 @@ module.exports = function(config) {
     browserNoActivityTimeout : 60000, //default 10000
 
     files: [
-      { pattern: 'test/vast/*', watched: true, served: true, included: false },
-      { pattern: 'test/media/*', watched: true, served: true, included: false },
-      { pattern: 'bower_components/crossxhr/crossxhr.swf', watched: false, served: true, included: false },
+      { pattern: 'test/vast/*', included: false },
+      { pattern: 'test/img/*', included: false },
+      { pattern: 'test/media/*', included: false },
+      { pattern: 'bower_components/crossxhr/crossxhr.swf', watched: false, included: false },
       'bower_components/crossxhr/crossxhr.js',
       'bower_components/vast-client-js/vast-client.js',
       'bower_components/video.js/dist/video-js/video.novtt.dev.js',
@@ -30,7 +31,7 @@ module.exports = function(config) {
       'src/js/swfurlhandler.js',
       'src/js/videojs.vast.js',
       'src/css/videojs.vast.css',
-      { pattern: 'test/*.js', watched: true, served: true, included: true }],
+      'test/*.test.js'],
 
     preprocessors: {
       'src/js/*.js': 'coverage'

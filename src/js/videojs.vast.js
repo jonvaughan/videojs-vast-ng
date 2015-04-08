@@ -1,4 +1,15 @@
-(function(window, videojs, dmvast, undefined) {
+(function(factory){
+  'use strict';
+  if (typeof define === 'function' && define.amd) {
+    define('videojs-vast-ng', ['videojs', 'vast-client-js'], function(vjs){factory(window, document, vjs, dmvast);});
+  } else if (typeof exports === 'object' && typeof module === 'object') {
+    factory(window, document, require('video.js'), require('vast-client-js'));
+  } else {
+    factory(window, document, videojs, DMVAST);
+  }
+})
+
+(function(window, document, videojs, dmvast, undefined) {
   'use strict';
 
   function vast(options) {
@@ -85,26 +96,26 @@
       var
         errorOccurred = false,
         canplayFn = function(e) {
-          if (options.debug) { videojs.log('vast', 'tracker', 'canplay'); }
+          if (options.debug) { videojs.log('vast', 'tracker', 'adcanplay'); }
           tracker.load();
         },
         durationchangeFn = function(e) {
-          if (options.debug) { videojs.log('vast', 'tracker', 'durationchange'); }
+          if (options.debug) { videojs.log('vast', 'tracker', 'addurationchange'); }
           tracker.assetDuration = _player.duration();
         },
         timeupdateFn = function() {
           tracker.setProgress(_player.currentTime());
         },
         playFn = function() {
-          if (options.debug) { videojs.log('vast', 'tracker', 'play'); }
+          if (options.debug) { videojs.log('vast', 'tracker', 'adplay'); }
           tracker.setPaused(false);
         },
         pauseFn = function(e) {
-          if (options.debug) { videojs.log('vast', 'tracker', 'pause'); }
+          if (options.debug) { videojs.log('vast', 'tracker', 'adpause'); }
           tracker.setPaused(true);
         },
         errorFn = function(e) {
-          if (options.debug) { videojs.log('vast', 'tracker', 'error'); }
+          if (options.debug) { videojs.log('vast', 'tracker', 'aderror'); }
           // Inform ad server we couldn't play the media file for this ad
           dmvast.util.track(tracker.ad.errorURLTemplates, {ERRORCODE: 405});
           errorOccurred = true;
@@ -113,7 +124,7 @@
           _player.trigger('adserror');
         },
         endedFn = function(e) {
-          if (options.debug) { videojs.log('vast', 'tracker', 'ended'); }
+          if (options.debug) { videojs.log('vast', 'tracker', 'adended'); }
 
           if (!errorOccurred) {
             tracker.complete();
@@ -391,17 +402,22 @@
       if (options.debug) { videojs.log('vast', 'loadVAST'); }
 
       _adbreak.attempts++;
-      _vastRequestCount++;
-
-      // lastVastRequestCount will become a sort of identifier for the
-      // current VAST request. The idea is to ignore previous vast
-      // requests still in flight.
-      var lastVastRequestCount = _vastRequestCount;
 
       if (!options.url) {
         _player.trigger('adscanceled');
         return;
       }
+
+      if (_adbreak.requestId) {
+        if (options.debug) { videojs.log.error('vast', 'loadVAST', 'ignore load vast request as another vast request (' + _adbreak.requestId + ') is in flight!'); }
+        return;
+      }
+
+      _vastRequestCount++;
+
+      var vastRequestId = _vastRequestCount;
+
+      _adbreak.requestId = vastRequestId;
 
       if (options.debug && options.customURLHandler) {
         videojs.log('vast', 'loadVAST', 'using custom URLHandler');
@@ -413,26 +429,27 @@
         timeout: options.vastTimeout
       };
 
-      // TODO: fails if options.url already contains querystring values
       var url;
 
       if (!videojs.util.isEmptyObject(options.adParameters)) {
-        url = options.url + (options.url.indexOf('?') !== -1 ? '?' : '&') + videojs.util.param(options.adParameters);
+        url = options.url + (options.url.indexOf('?') === -1 ? '?' : '&') + videojs.util.param(options.adParameters);
       } else {
         url = options.url;
       }
 
       if (options.debug) {
-        videojs.log('vast', 'loadVAST', 'ad requested: ' + url);
+        videojs.log('vast', 'loadVAST', 'ad requested (' + vastRequestId + '): ' + url);
       }
 
       dmvast.client.get(url, getOptions, function(response) {
-        if (options.debug) { videojs.log('vast', 'loadVAST', 'response', response); }
+        if (options.debug) { videojs.log('vast', 'loadVAST', 'response (' + vastRequestId + ')', response); }
 
-        if (lastVastRequestCount !== _vastRequestCount) {
-          if (options.debug) { videojs.log('vast', 'loadVAST', 'ignored response as another vast request is in flight!'); }
+        if (!_adbreak || (_adbreak.requestId !== null && vastRequestId !== _adbreak.requestId)) {
+          if (options.debug) { videojs.log.error('vast', 'loadVAST', 'ignore response (' + vastRequestId + ') as another vast request (' + _adbreak.requestId + ') is in flight!'); }
           return;
         }
+
+        _adbreak.requestId = null;
 
         if (response) {
           // TODO: Rework code to support VAST 3 AD Pods
@@ -493,7 +510,7 @@
 
               if (immediatePlayback) {
                 if (options.debug) { videojs.log.warn('vast', 'loadVAST', 'immediate AD playback!'); }
-                _startAd();
+                setTimeout(_startAd, 1);
               } else {
                 // vast tracker and content is ready to go, trigger event
                 _player.trigger('adsready');
@@ -533,27 +550,30 @@
       }
     };
 
-    _player.vast.requestAdBreak = function() {
-      if (options.debug) { videojs.log('vast', 'requestAdBreak', _player.ads.state); }
+    _player.vast.requestAdBreak = function(e) {
+      if (options.debug) { videojs.log('vast', 'requestAdBreak', _player.ads.state, e.type); }
 
-      switch(_player.ads.state) {
-        case 'content-set':
-        case 'content-resuming':
-        case 'ad-playback': // hit when next/previous is triggered
-        case 'ads-ready?':
-          break;
+      if (_player.ads.state === 'content-set') {
+        if (options.debug) {
+          videojs.log('vast', 'requestAdBreak', 'ignored trigger by \'' +
+          e.type + '\', ads state: ' + _player.ads.state);
+        }
+        _player.trigger('play');
+        return;
+      }
 
-        default:
-          if (options.debug) {
-            videojs.log('vast', 'requestAdBreak', 'ignored: ads state ' +
-            _player.ads.triggerevent + ' -> ' + _player.ads.state);
-          }
-          return;
+      if (_player.ads.state !== 'ads-ready?' && e.type === 'play') {
+        if (options.debug) {
+          videojs.log('vast', 'requestAdBreak', 'ignored trigger by \'' +
+          e.type + '\', ads state: ' + _player.ads.state);
+        }
+        return;
       }
 
       _adbreak = {
         attempts: 0,
-        count: 0
+        count: 0,
+        requestId: null
       };
 
       if (options.url) {
@@ -627,6 +647,10 @@
       return null;
     }
 
+    _player.on('adloadstart', function(e) {
+      if (options.debug) { videojs.log('vast', 'adloadstart', _player.ads.state); }
+    });
+
     _player.on('contentupdate', function(e) {
       if (options.debug) { videojs.log('vast', 'contentupdate', 'ads.state: ' +
         _player.ads.state + ', newValue: ' + e.newValue); }
@@ -641,24 +665,18 @@
       }
 
       if (!_player.paused()) {
-        // HACK: Find the source of the problem so we don't have to resort
-        // to this hackish code
-        if (_adbreak) {
-          _player.vast.ensureLeaveAdBreak();
-        }
-
-        _player.vast.requestAdBreak();
+        _player.vast.requestAdBreak(e);
       }
     });
 
     _player.on(['next', 'previous'], function(e) {
+      if (options.debug) { videojs.log('vast', e.type, _player.ads.state); }
+
       // HACK: Find the source of the problem so we don't have to resort
       // to this hackish code
-      if (_adbreak) {
+      if (_player.ads.state === 'ad-playback') {
         _player.vast.ensureLeaveAdBreak();
       }
-
-      _player.vast.requestAdBreak();
     });
 
     _player.on('contentended', function(e) {
@@ -669,7 +687,7 @@
       }
     });
 
-    _player.on('play', function() {
+    _player.on('play', function(e) {
       if (options.debug) { videojs.log('vast', 'play'); }
 
       if (_adbreak) {
@@ -677,7 +695,7 @@
         return;
       }
 
-      _player.vast.requestAdBreak();
+      _player.vast.requestAdBreak(e);
     });
 
     _player.on('contentplayback', function(e) {
@@ -714,4 +732,4 @@
 
   videojs.plugin('vast', vast);
 
-}(window, videojs, DMVAST));
+});
