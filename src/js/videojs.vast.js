@@ -669,11 +669,14 @@
       }
     });
 
+    // integration with videojs-playlist
     _player.on(['next', 'previous'], function(e) {
       if (options.debug) { videojs.log('vast', e.type, _player.ads.state); }
 
-      // HACK: Find the source of the problem so we don't have to resort
-      // to this hackish code
+      // HACK: If the ads state is 'ad-playback', then it means the 'next'
+      // event was firing while an existing AD was playing. We have to force
+      // the player to leave the running AD break so we can initialize
+      // another one.
       if (_player.ads.state === 'ad-playback') {
         _player.vast.ensureLeaveAdBreak();
       }
