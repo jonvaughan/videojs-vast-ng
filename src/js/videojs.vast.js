@@ -208,6 +208,7 @@
         className: 'vast-skip-button',
         onclick: function(e) {
           if(!_skipBtn.disabled && _skipBtn.className.indexOf(' enabled') !== -1) {
+            if (options.debug) { videojs.log('vast', 'skipBtn clicked'); }
             _tracker.skip();
             _endAd();
           }
@@ -255,9 +256,9 @@
           _skipBtn.className += ' enabled';
         }
 
-        _skipBtn.innerHTML = 'AD#' + _adbreak.count + '/' + options.maxAdCount + ' Skip in ' + timeLeft + '...';
+        _skipBtn.innerHTML = 'Skip AD in ' + timeLeft + ' seconds';
       } else {
-        _skipBtn.innerHTML = 'AD#' + _adbreak.count + '/' + options.maxAdCount + ' Skip';
+        _skipBtn.innerHTML = 'Skip >';
         _skipBtn.disabled = false;
       }
     };
@@ -265,7 +266,7 @@
     var _updateCompanions = function() {
       for(var i=0; i<_companions.variations.length; i++) {
         var comp = _companions.variations[i];
-        var q = '#' + _player.id() + '-' + comp.width + 'x' + comp.height;
+        var q = '#' + _player.id() + '-companion-' + comp.width + 'x' + comp.height;
         var compEl = document.querySelector(q);
 
         if (!compEl) {
@@ -579,6 +580,7 @@
       if (options.url) {
         _loadVAST();
       } else {
+        if (options.debug) { videojs.log('vast', 'requestAdBreak', 'canceling ad break: no AD url present'); }
         _player.trigger('adscanceled');
       }
     };
@@ -659,7 +661,7 @@
       // e.newValue starting with 'http://...', but Chrome will sometimes fire two contentupdate
       // events from with e.newValue of 'ocean.mp4' and 'http://localhost:9000/ocean.mp4'.
       // This is not an issue if the src paths are absolute paths.
-      if (e.newValue.indexOf('http') !== 0) {
+      if (e.newValue && e.newValue.indexOf('http') !== 0) {
         videojs.log.warn('duplicate contentupdate! \'' + e.oldValue + '\' to \'' + e.newValue + '\'');
         return;
       }
@@ -694,7 +696,7 @@
       if (options.debug) { videojs.log('vast', 'play'); }
 
       if (_adbreak) {
-        if (options.debug) { videojs.log.warn('vast', 'play', 'ignored: ad break already going running'); }
+        if (options.debug) { videojs.log.warn('vast', 'play', 'ignored: ad break already going running', _adbreak); }
         return;
       }
 
