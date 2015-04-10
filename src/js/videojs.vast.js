@@ -672,7 +672,7 @@
     });
 
     // integration with videojs-playlist
-    _player.on(['next', 'previous'], function(e) {
+    _player.on(['next', 'previous', 'jump'], function(e) {
       if (options.debug) { videojs.log('vast', e.type, _player.ads.state); }
 
       // HACK: If the ads state is 'ad-playback', then it means the 'next'
