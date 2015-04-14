@@ -374,6 +374,7 @@
 
       // HACK: Force the tech to be reloaded after the ad finishes
       if (_player['techName'] === 'Vpaidflash' && _player.ended()) {
+        if (options.debug) { videojs.warn('vast', 'startAd', 'Forcing Vpaidflash to be reloaded'); }
         _player['techName'] = null;
       }
 
@@ -421,7 +422,7 @@
       _adbreak.requestId = vastRequestId;
 
       if (options.debug && options.customURLHandler) {
-        videojs.log('vast', 'loadVAST', 'using custom URLHandler');
+        videojs.log('vast', 'loadVAST', 'custom URLHandler provided: supported=' + options.customURLHandler.supported());
       }
 
       var getOptions = {
