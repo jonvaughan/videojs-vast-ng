@@ -1,4 +1,4 @@
-(function (window, document, videojs, chai, sinon) {
+(function (window, document, videojs, DMVAST, chai, sinon) {
   'use strict';
 
   var expect = chai.expect;
@@ -360,4 +360,4 @@
 
     }); // end describe
   });
-})(window, document, videojs, chai, sinon);
+})(window, document, videojs, DMVAST, chai, sinon);

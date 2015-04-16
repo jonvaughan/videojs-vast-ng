@@ -120,6 +120,7 @@ vjs.Vpaidflash.prototype.pause = function(){
 };
 
 vjs.Vpaidflash.prototype.src = function(src){
+  console.debug('vpaidflash', 'src', src);
   if (src === undefined) {
     return this['currentSrc']();
   }
@@ -129,8 +130,6 @@ vjs.Vpaidflash.prototype.src = function(src){
 };
 
 vjs.Vpaidflash.prototype.setSrc = function(source){
-  console.debug('vpaidflash', 'setSrc', source);
-
   var src;
 
   if (typeof source === 'object' && source.src) {
@@ -149,7 +148,6 @@ vjs.Vpaidflash.prototype.setSrc = function(source){
   // Make sure source URL is absolute.
   src = vjs.getAbsoluteURL(src);
 
-  console.debug('vpaidflash', 'setSrc', src);
   this.el_.vjs_src(src);
 
   // Make sure source URL is absolute.
@@ -343,6 +341,10 @@ vjs.Vpaidflash['checkReady'] = function(tech){
 // Trigger events from the swf on the player
 vjs.Vpaidflash['onEvent'] = function(swfID, eventName){
   var player = vjs.el(swfID)['player'];
+  // player.trigger({
+  //   type: eventName,
+  //   arguments: arguments.splice(2)
+  // });
   player.trigger(eventName);
 };
 

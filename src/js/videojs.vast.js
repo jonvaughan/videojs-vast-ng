@@ -115,7 +115,7 @@
           tracker.setPaused(true);
         },
         errorFn = function(e) {
-          if (options.debug) { videojs.log('vast', 'tracker', 'aderror'); }
+          if (options.debug) { videojs.log('vast', 'tracker', 'aderror', e); }
           // Inform ad server we couldn't play the media file for this ad
           dmvast.util.track(tracker.ad.errorURLTemplates, {ERRORCODE: 405});
           errorOccurred = true;
@@ -381,8 +381,6 @@
       // load linear ad sources and start playing them
       _player.src(_sources);
 
-      if (options.debug) { videojs.log('vast', 'startAd', 'ad src: ' + _player.src()); }
-
       // VPAID will handle it's own click events.
       // TODO: make the vast plugin handle it
       if (_tracker && _player.techName.indexOf('Vpaid') !== 0) {
@@ -476,11 +474,7 @@
                     continue;
                   }
 
-                  if (options.debug) { videojs.log('vast', 'loadVAST', 'creative', creative); }
-
                   var sources = _createSourceObjects(creative.mediaFiles, creative.adParameters);
-
-                  if (options.debug) { videojs.log('vast', 'loadVAST', 'sources', sources); }
 
                   if (sources && sources.length) {
                     _sources = sources;
