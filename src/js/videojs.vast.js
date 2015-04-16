@@ -26,7 +26,7 @@
 
     _player.vast = _player.vast || {};
 
-    var _createSourceObjects = function(mediaFiles) {
+    var _createSourceObjects = function(mediaFiles, adParameters) {
       var sourcesByFormat = {}, i, j, to, techName, tech, sbf, techOrder = _player.options().techOrder;
 
       for (i = 0; i < techOrder.length; i++) {
@@ -59,7 +59,7 @@
 
             // extended properties
             apiFramework: f.apiFramework,
-            adParameters: f.adParameters,
+            adParameters: adParameters,
             duration: f.duration,
             bitrate: f.bitrate
           };
@@ -374,7 +374,7 @@
 
       // HACK: Force the tech to be reloaded after the ad finishes
       if (_player['techName'] === 'Vpaidflash' && _player.ended()) {
-        if (options.debug) { videojs.warn('vast', 'startAd', 'Forcing Vpaidflash to be reloaded'); }
+        if (options.debug) { videojs.log.warn('vast', 'startAd', 'Forcing Vpaidflash to be reloaded'); }
         _player['techName'] = null;
       }
 
@@ -476,7 +476,11 @@
                     continue;
                   }
 
-                  var sources = _createSourceObjects(creative.mediaFiles);
+                  if (options.debug) { videojs.log('vast', 'loadVAST', 'creative', creative); }
+
+                  var sources = _createSourceObjects(creative.mediaFiles, creative.adParameters);
+
+                  if (options.debug) { videojs.log('vast', 'loadVAST', 'sources', sources); }
 
                   if (sources && sources.length) {
                     _sources = sources;
@@ -724,6 +728,10 @@
       }
 
       _startAd();
+    });
+
+    _player.on('adscanceled', function() {
+      _player.vast.ensureLeaveAdBreak();
     });
 
     // merge in default values

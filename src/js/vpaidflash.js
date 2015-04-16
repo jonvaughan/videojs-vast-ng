@@ -93,6 +93,17 @@ vjs.Vpaidflash = vjs.MediaTechController.extend({
     player.on('stageclick', player.reportUserActivity);
 
     this.el_ = vjs.Flash.embed(options['swf'], this.el_, flashVars, params, attributes);
+
+    player.on(['srcnotset',
+      'srcnotfound',
+      'rtmpconnectfailure',
+      'propertynotfound',
+      'posterioerror',
+      'postersecurityerror',
+      'unsupportedmode',
+      'vpaidcreativeerror'], function(e) {
+      console.error('error from flash', e);
+    });
   }
 });
 
@@ -117,34 +128,29 @@ vjs.Vpaidflash.prototype.src = function(src){
   return this.setSrc(src);
 };
 
-vjs.Vpaidflash.prototype.setSrc = function(src){
+vjs.Vpaidflash.prototype.setSrc = function(source){
+  console.debug('vpaidflash', 'setSrc', source);
 
-  // Patch taken from https://github.com/guardian/video.js/blob/master/src/js/media/vpaid.js#L115
-  // A dependency on the vast plugin. Retrieve the source object for the requested src,
-  // and pass properties into the player.
-  if (this.player_.vast && this.player_.vast.sources) {
+  var src;
 
-    var sources = this.player_.vast.sources();
+  if (typeof source === 'object' && source.src) {
+    this.el_.vjs_setProperty('adParameters', source['adParameters']);
+    this.el_.vjs_setProperty('duration', source['duration']);
+    this.el_.vjs_setProperty('bitrate', source['bitrate']);
+    this.el_.vjs_setProperty('width', source['width']);
+    this.el_.vjs_setProperty('height', source['height']);
+    this.el_.vjs_setProperty('duration', source['duration']);
 
-    var sourceObject;
+    this['trackCurrentTime']();
 
-    vjs.arr.forEach(sources, function(srcObj) {
-      if (srcObj.src === src) {
-        sourceObject = srcObj;
-      }
-    }, this);
-
-    if (sourceObject) {
-      this.el_.vjs_setProperty('adParameters', sourceObject['adParameters']);
-      this.el_.vjs_setProperty('duration', sourceObject['duration']);
-      this.el_.vjs_setProperty('bitrate', sourceObject['bitrate']);
-      this.el_.vjs_setProperty('width', sourceObject['width']);
-      this.el_.vjs_setProperty('height', sourceObject['height']);
-
-      this.player_.duration(sourceObject['duration']);
-      this['trackCurrentTime']();
-    }
+    src = source['src'];
   }
+
+  // Make sure source URL is absolute.
+  src = vjs.getAbsoluteURL(src);
+
+  console.debug('vpaidflash', 'setSrc', src);
+  this.el_.vjs_src(src);
 
   // Make sure source URL is absolute.
   src = vjs.getAbsoluteURL(src);
@@ -208,7 +214,7 @@ vjs.Vpaidflash.prototype.enterFullScreen = function(){
   // Create setters and getters for attributes
   var api = vjs.Vpaidflash.prototype,
     readWrite = 'preload,defaultPlaybackRate,playbackRate,autoplay,loop,mediaGroup,controller,controls,volume,muted,defaultMuted'.split(','),
-    readOnly = 'error,networkState,readyState,seeking,initialTime,duration,startOffsetTime,paused,played,seekable,ended,videoTracks,audioTracks,width,height'.split(','),
+    readOnly = 'buffered,error,networkState,readyState,seeking,initialTime,duration,startOffsetTime,paused,played,seekable,ended,videoTracks,audioTracks,width,height'.split(','),
     // Overridden: buffered, currentTime, currentSrc
     i;
 
@@ -280,7 +286,7 @@ vjs.Vpaidflash.nativeSourceHandler.canHandleSource = function(source){
  * @param  {vjs.Vpaidflash} tech   The instance of the Flash tech
  */
 vjs.Vpaidflash.nativeSourceHandler.handleSource = function(source, tech){
-  tech.setSrc(source.src);
+  tech.setSrc(source);
 };
 
 /**
