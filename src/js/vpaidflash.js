@@ -94,15 +94,12 @@ vjs.Vpaidflash = vjs.MediaTechController.extend({
 
     this.el_ = vjs.Flash.embed(options['swf'], this.el_, flashVars, params, attributes);
 
-    player.on(['srcnotset',
+    player.on([
+      'srcnotset',
       'srcnotfound',
-      'rtmpconnectfailure',
-      'propertynotfound',
-      'posterioerror',
-      'postersecurityerror',
-      'unsupportedmode',
       'vpaidcreativeerror'], function(e) {
       console.error('error from flash', e);
+      player.trigger('aderror');
     });
   }
 });
@@ -120,7 +117,6 @@ vjs.Vpaidflash.prototype.pause = function(){
 };
 
 vjs.Vpaidflash.prototype.src = function(src){
-  console.debug('vpaidflash', 'src', src);
   if (src === undefined) {
     return this['currentSrc']();
   }
@@ -140,7 +136,7 @@ vjs.Vpaidflash.prototype.setSrc = function(source){
     this.el_.vjs_setProperty('height', source['height']);
     this.el_.vjs_setProperty('duration', source['duration']);
 
-    this['trackCurrentTime']();
+    // this['trackCurrentTime']();
 
     src = source['src'];
   }
@@ -187,13 +183,6 @@ vjs.Vpaidflash.prototype['currentSrc'] = function(){
 
 vjs.Vpaidflash.prototype.load = function(){
   this.el_.vjs_load();
-};
-
-vjs.Vpaidflash.prototype.poster = function(){
-  this.el_.vjs_getProperty('poster');
-};
-vjs.Vpaidflash.prototype['setPoster'] = function(){
-  // poster images are not handled by the Flash tech so make this a no-op
 };
 
 vjs.Vpaidflash.prototype.buffered = function(){

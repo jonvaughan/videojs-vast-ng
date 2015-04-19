@@ -104,7 +104,9 @@
           tracker.assetDuration = _player.duration();
         },
         timeupdateFn = function() {
-          tracker.setProgress(_player.currentTime());
+          var t = _player.currentTime();
+          console.debug('vast', 'tracker', t);
+          tracker.setProgress(t);
         },
         playFn = function() {
           if (options.debug) { videojs.log('vast', 'tracker', 'adplay'); }
@@ -131,6 +133,15 @@
           }
 
           tracker.removeListeners();
+        },
+        firstQuartileFn = function(e) {
+          tracker.track('firstQuartile');
+        },
+        midpointFn = function(e) {
+          tracker.track('midpoint');
+        },
+        thirdQuartileFn = function(e) {
+          tracker.track('thirdQuartile');
         };
 
       tracker.addListeners = function() {
@@ -142,6 +153,9 @@
         _player.on('adpause', pauseFn);
         _player.on('aderror', errorFn);
         _player.on('adended', endedFn);
+        _player.on('AdVideoFirstQuartile', firstQuartileFn);
+        _player.on('AdVideoMidpoint', midpointFn);
+        _player.on('AdVideoThirdQuartile', thirdQuartileFn);
       };
 
       tracker.removeListeners = function() {
@@ -153,6 +167,9 @@
         _player.off('adpause', pauseFn);
         _player.off('aderror', errorFn);
         _player.off('adended', endedFn);
+        _player.off('AdVideoFirstQuartile', firstQuartileFn);
+        _player.off('AdVideoMidpoint', midpointFn);
+        _player.off('AdVideoThirdQuartile', thirdQuartileFn);
       };
 
       return tracker;
@@ -445,7 +462,7 @@
         if (options.debug) { videojs.log('vast', 'loadVAST', 'response (' + vastRequestId + ')', response); }
 
         if (!_adbreak || (_adbreak.requestId !== null && vastRequestId !== _adbreak.requestId)) {
-          if (options.debug) { videojs.log.error('vast', 'loadVAST', 'ignore response (' + vastRequestId + ') as another vast request (' + _adbreak.requestId + ') is in flight!'); }
+          if (options.debug) { videojs.log.error('vast', 'loadVAST', 'ignore response (' + vastRequestId + ') as another vast request (' + (_adbreak ? _adbreak.requestId : null) + ') is in flight!'); }
           return;
         }
 
