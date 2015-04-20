@@ -134,6 +134,15 @@
 
           tracker.removeListeners();
         },
+        timeoutFn = function(e) {
+          if (options.debug) { videojs.log('vast', 'tracker', 'adtimeout', e); }
+          // Inform ad server we couldn't play the media file for this ad
+          dmvast.util.track(tracker.ad.errorURLTemplates, {ERRORCODE: 402});
+          errorOccurred = true;
+          tracker.removeListeners();
+          _player.vast.ensureLeaveAdBreak();
+          _player.trigger('adtimeout');
+        },
         creativeviewFn = function(e) {
           tracker.track('creativeView');
         },
@@ -154,8 +163,9 @@
         _player.on('adtimeupdate', timeupdateFn);
         _player.on('adplay', playFn);
         _player.on('adpause', pauseFn);
-        _player.on('aderror', errorFn);
         _player.on('adended', endedFn);
+        _player.on('vasterror', errorFn);
+        _player.on('vasttimeout', timeoutFn);
 
         // Listen for VAST events
         _player.on('vastcreativeview', creativeviewFn);
@@ -171,8 +181,9 @@
         _player.off('adtimeupdate', timeupdateFn);
         _player.off('adplay', playFn);
         _player.off('adpause', pauseFn);
-        _player.off('aderror', errorFn);
         _player.off('adended', endedFn);
+        _player.off('vasterror', errorFn);
+        _player.off('vasttimeout', timeoutFn);
 
         // Listen for VAST events
         _player.off('vastcreativeview', creativeviewFn);

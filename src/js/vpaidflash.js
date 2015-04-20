@@ -99,7 +99,12 @@ vjs.Vpaidflash = vjs.MediaTechController.extend({
       'srcnotfound',
       'vpaidcreativeerror'], function(e) {
       console.warn('error from flash', e);
-      player.trigger('aderror');
+      player.trigger('vasterror');
+    });
+
+    player.on('vpaidcreativetimeout', function(e) {
+      console.warn('timeout from flash', e);
+      player.trigger('vasttimeout');
     });
   }
 });
