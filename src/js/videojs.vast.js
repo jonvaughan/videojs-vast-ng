@@ -806,7 +806,7 @@
       _startAd();
     });
 
-    _player.on('adscanceled', function(e) {
+    _player.on(['adtimeout', 'adscanceled'], function(e) {
       _player.vast.ensureLeaveAdBreak();
     });
 
