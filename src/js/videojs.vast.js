@@ -134,13 +134,16 @@
 
           tracker.removeListeners();
         },
-        firstQuartileFn = function(e) {
+        creativeviewFn = function(e) {
+          tracker.track('creativeView');
+        },
+        firstquartileFn = function(e) {
           tracker.track('firstQuartile');
         },
         midpointFn = function(e) {
           tracker.track('midpoint');
         },
-        thirdQuartileFn = function(e) {
+        thirdquartileFn = function(e) {
           tracker.track('thirdQuartile');
         };
 
@@ -153,9 +156,12 @@
         _player.on('adpause', pauseFn);
         _player.on('aderror', errorFn);
         _player.on('adended', endedFn);
-        _player.on('AdVideoFirstQuartile', firstQuartileFn);
-        _player.on('AdVideoMidpoint', midpointFn);
-        _player.on('AdVideoThirdQuartile', thirdQuartileFn);
+
+        // Listen for VAST events
+        _player.on('vastcreativeview', creativeviewFn);
+        _player.on('vastfirstquartile', firstquartileFn);
+        _player.on('vastmidpoint', midpointFn);
+        _player.on('vastthirdquartile', thirdquartileFn);
       };
 
       tracker.removeListeners = function() {
@@ -167,9 +173,12 @@
         _player.off('adpause', pauseFn);
         _player.off('aderror', errorFn);
         _player.off('adended', endedFn);
-        _player.off('AdVideoFirstQuartile', firstQuartileFn);
-        _player.off('AdVideoMidpoint', midpointFn);
-        _player.off('AdVideoThirdQuartile', thirdQuartileFn);
+
+        // Listen for VAST events
+        _player.off('vastcreativeview', creativeviewFn);
+        _player.off('vastfirstquartile', firstquartileFn);
+        _player.off('vastmidpoint', midpointFn);
+        _player.off('vastthirdquartile', thirdquartileFn);
       };
 
       return tracker;
@@ -425,7 +434,7 @@
         return;
       }
 
-      if (_adbreak.requestId) {
+      if (_adbreak.requestId >= 1) {
         if (options.debug) { videojs.log.error('vast', 'loadVAST', 'ignore load vast request as another vast request (' + _adbreak.requestId + ') is in flight!'); }
         return;
       }

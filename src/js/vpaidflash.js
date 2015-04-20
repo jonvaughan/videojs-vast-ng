@@ -98,7 +98,7 @@ vjs.Vpaidflash = vjs.MediaTechController.extend({
       'srcnotset',
       'srcnotfound',
       'vpaidcreativeerror'], function(e) {
-      console.error('error from flash', e);
+      console.warn('error from flash', e);
       player.trigger('aderror');
     });
   }
