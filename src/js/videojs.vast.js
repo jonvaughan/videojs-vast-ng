@@ -145,6 +145,9 @@
         creativeviewFn = function(e) {
           tracker.track('creativeView');
         },
+        startFn = function(e) {
+          tracker.track('start');
+        },
         firstquartileFn = function(e) {
           tracker.track('firstQuartile');
         },
@@ -170,11 +173,17 @@
         },
         closeFn = function(e) {
           tracker.track('close');
+        },
+        muteFn = function(e) {
+          tracker.setMuted(true);
+        },
+        unmuteFn = function(e) {
+          tracker.setMuted(false);
         };
 
       tracker.addListeners = function() {
         if (options.debug) { videojs.log('vast', 'tracker', 'addListeners'); }
-        _player.on('adcanplay', canplayFn);
+        _player.on(['vastimpression', 'adcanplay'], canplayFn);
         _player.on('addurationchange', durationchangeFn);
         _player.on('adtimeupdate', timeupdateFn);
         _player.on(['vastresume', 'adplay'], playFn);
@@ -185,6 +194,7 @@
 
         // Listen for VAST events
         _player.on('vastcreativeview', creativeviewFn);
+        _player.on('vaststart', startFn);
         _player.on('vastfirstquartile', firstquartileFn);
         _player.on('vastmidpoint', midpointFn);
         _player.on('vastthirdquartile', thirdquartileFn);
@@ -194,11 +204,14 @@
         _player.on('vastcollapse', collapseFn);
         _player.on('vastskip', skipFn);
         _player.on('vastclose', closeFn);
+
+        _player.on('vastmute', muteFn);
+        _player.on('vastunmute', unmuteFn);
       };
 
       tracker.removeListeners = function() {
         if (options.debug) { videojs.log('vast', 'tracker', 'removeListeners'); }
-        _player.off('adcanplay', canplayFn);
+        _player.off(['vastimpression', 'adcanplay'], canplayFn);
         _player.off('addurationchange', durationchangeFn);
         _player.off('adtimeupdate', timeupdateFn);
         _player.off(['vastresume', 'adplay'], playFn);
@@ -209,6 +222,7 @@
 
         // Listen for VAST events
         _player.off('vastcreativeview', creativeviewFn);
+        _player.off('vaststart', startFn);
         _player.off('vastfirstquartile', firstquartileFn);
         _player.off('vastmidpoint', midpointFn);
         _player.off('vastthirdquartile', thirdquartileFn);
@@ -218,6 +232,9 @@
         _player.off('vastcollapse', collapseFn);
         _player.off('vastskip', skipFn);
         _player.off('vastclose', closeFn);
+
+        _player.off('vastmute', muteFn);
+        _player.off('vastunmute', unmuteFn);
       };
 
       return tracker;

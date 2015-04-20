@@ -307,7 +307,7 @@
           player.one(['adscanceled', 'adserror'], function() {
             player.one('contentplayback', function() {
               expect(player.src()).to.match(/test\/media\/small\.mp4$/);
-              expect(!player.paused()).to.equal(true);
+              expect(player.paused()).to.equal(false);
               done();
             });
           });
@@ -337,16 +337,19 @@
         videojs(videoEl, playerOptions, function() {
           player = this;
 
-          player.one(['adscanceled', 'adserror'], function() {
+          player.one(['adscanceled', 'adserror'], function(e) {
+            console.debug('error: ' + e.type);
             player.one('contentplayback', function() {
               expect(player.src()).to.match(/test\/media\/small\.mp4$/);
-              expect(!player.paused()).to.equal(true);
+              expect(player.paused()).to.equal(false);
               done();
             });
           });
 
           player.one('adsready', function() {
+            console.debug('adsready');
             player.one('vastrequested', function() {
+              console.debug('vastrequested');
               player.one('adstart', function() {
                 done('the ad should not have played!');
               });
