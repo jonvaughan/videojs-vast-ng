@@ -101,11 +101,6 @@ vjs.Vpaidflash = vjs.MediaTechController.extend({
       console.warn('error from flash', e);
       player.trigger('vasterror');
     });
-
-    player.on('vpaidcreativetimeout', function(e) {
-      console.warn('timeout from flash', e);
-      player.trigger('vasttimeout');
-    });
   }
 });
 
@@ -349,6 +344,8 @@ vjs.Vpaidflash['onError'] = function(swfID, err){
 
   if (err == 'srcnotfound') { // jshint ignore:line
     player.error({ code: 4, message: msg });
+  } if (err === 'vpaidcreativetimeout') {
+    player.trigger('vasttimeout');
 
   // errors we haven't categorized into the media errors
   } else {
