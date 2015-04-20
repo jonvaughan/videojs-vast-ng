@@ -105,7 +105,6 @@
         },
         timeupdateFn = function() {
           var t = _player.currentTime();
-          console.debug('vast', 'tracker', t);
           tracker.setProgress(t);
         },
         playFn = function() {
@@ -154,6 +153,23 @@
         },
         thirdquartileFn = function(e) {
           tracker.track('thirdQuartile');
+        },
+        clicktrackingFn = function(e) {
+          tracker.click();
+        },
+        acceptinvitationFn = function(e) {
+          tracker.track('acceptInvitation');
+        },
+        collapseFn = function(e) {
+          tracker.track('collapse');
+        },
+        skipFn = function(e) {
+          // TODO: Refactor/merge code from _skipBtn.onclick
+          tracker.skip();
+          _endAd();
+        },
+        closeFn = function(e) {
+          tracker.track('close');
         };
 
       tracker.addListeners = function() {
@@ -161,8 +177,8 @@
         _player.on('adcanplay', canplayFn);
         _player.on('addurationchange', durationchangeFn);
         _player.on('adtimeupdate', timeupdateFn);
-        _player.on('adplay', playFn);
-        _player.on('adpause', pauseFn);
+        _player.on(['vastresume', 'adplay'], playFn);
+        _player.on(['vastpause', 'adpause'], pauseFn);
         _player.on('adended', endedFn);
         _player.on('vasterror', errorFn);
         _player.on('vasttimeout', timeoutFn);
@@ -172,6 +188,12 @@
         _player.on('vastfirstquartile', firstquartileFn);
         _player.on('vastmidpoint', midpointFn);
         _player.on('vastthirdquartile', thirdquartileFn);
+
+        _player.on('vastclicktracking', clicktrackingFn);
+        _player.on('vastacceptinvitation', acceptinvitationFn);
+        _player.on('vastcollapse', collapseFn);
+        _player.on('vastskip', skipFn);
+        _player.on('vastclose', closeFn);
       };
 
       tracker.removeListeners = function() {
@@ -179,8 +201,8 @@
         _player.off('adcanplay', canplayFn);
         _player.off('addurationchange', durationchangeFn);
         _player.off('adtimeupdate', timeupdateFn);
-        _player.off('adplay', playFn);
-        _player.off('adpause', pauseFn);
+        _player.off(['vastresume', 'adplay'], playFn);
+        _player.off(['vastpause', 'adpause'], pauseFn);
         _player.off('adended', endedFn);
         _player.off('vasterror', errorFn);
         _player.off('vasttimeout', timeoutFn);
@@ -190,6 +212,12 @@
         _player.off('vastfirstquartile', firstquartileFn);
         _player.off('vastmidpoint', midpointFn);
         _player.off('vastthirdquartile', thirdquartileFn);
+
+        _player.off('vastclicktracking', clicktrackingFn);
+        _player.off('vastacceptinvitation', acceptinvitationFn);
+        _player.off('vastcollapse', collapseFn);
+        _player.off('vastskip', skipFn);
+        _player.off('vastclose', closeFn);
       };
 
       return tracker;
@@ -761,8 +789,12 @@
       _startAd();
     });
 
-    _player.on('adscanceled', function() {
+    _player.on('adscanceled', function(e) {
       _player.vast.ensureLeaveAdBreak();
+    });
+
+    _player.on('adserror', function(e) {
+      console.debug('leaving', e);
     });
 
     // merge in default values
