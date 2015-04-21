@@ -815,6 +815,7 @@
     // add hack to convert it to adserror
     _player.on(['aderror'], function(e) {
       if (options.debug) { videojs.log.error('vast', 'aderror -> adserror'); }
+      _player.vast.ensureLeaveAdBreak();
       _player.trigger('adserror');
     });
 
