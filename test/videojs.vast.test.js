@@ -72,6 +72,7 @@
 
       playerOptions = {
         controls: true,
+        muted: true,
         plugins: {
           'ads': { }
         }
@@ -312,12 +313,8 @@
             });
           });
 
-          player.one('adsready', function() {
-            player.one('vastrequested', function() {
-              player.one('adstart', function() {
-                done('the ad should not have played!');
-              });
-            });
+          player.one('adstart', function() {
+            done('the ad should not have played!');
           });
 
           player.src(sampleMp4);
@@ -337,22 +334,11 @@
         videojs(videoEl, playerOptions, function() {
           player = this;
 
-          player.one(['adscanceled', 'adserror'], function(e) {
-            console.debug('error: ' + e.type);
-            player.one('contentplayback', function() {
+          player.one('adserror', function() {
+            player.one('contentplay', function() {
               expect(player.src()).to.match(/test\/media\/small\.mp4$/);
               expect(player.paused()).to.equal(false);
               done();
-            });
-          });
-
-          player.one('adsready', function() {
-            console.debug('adsready');
-            player.one('vastrequested', function() {
-              console.debug('vastrequested');
-              player.one('adstart', function() {
-                done('the ad should not have played!');
-              });
             });
           });
 

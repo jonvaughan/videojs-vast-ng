@@ -806,12 +806,16 @@
       _startAd();
     });
 
-    _player.on(['adtimeout', 'adscanceled'], function(e) {
+    _player.on(['adtimeout', 'adscanceled', 'adserror'], function(e) {
+      if (options.debug) { videojs.log.warn('force stop stop ad', e.type); }
       _player.vast.ensureLeaveAdBreak();
     });
 
-    _player.on('adserror', function(e) {
-      console.debug('leaving', e);
+    // HACK: HTTP 404 on the src will trigger a 'error' event;
+    // add hack to convert it to adserror
+    _player.on(['aderror'], function(e) {
+      if (options.debug) { videojs.log.error('vast', 'aderror -> adserror'); }
+      _player.trigger('adserror');
     });
 
     // merge in default values
