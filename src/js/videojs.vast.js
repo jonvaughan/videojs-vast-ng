@@ -786,6 +786,10 @@
       }
     });
 
+    _player.on('pause', function(e) {
+      if (options.debug) { videojs.log('vast', 'pause'); }
+    });
+
     _player.on('contentplayback', function(e) {
       if (options.debug) { videojs.log('vast', 'contentplayback', e.triggerevent); }
     });

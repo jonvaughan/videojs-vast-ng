@@ -31,9 +31,9 @@ vjs.Vpaidflash = vjs.MediaTechController.extend({
         flashVars = vjs.obj.merge({
 
           // SWF Callback Functions
-          'readyFunction': 'vjs.Vpaidflash.onReady',
-          'eventProxyFunction': 'vjs.Vpaidflash.onEvent',
-          'errorEventProxyFunction': 'vjs.Vpaidflash.onError',
+          'readyFunction': 'videojs.Vpaidflash.onReady',
+          'eventProxyFunction': 'videojs.Vpaidflash.onEvent',
+          'errorEventProxyFunction': 'videojs.Vpaidflash.onError',
 
           // Player Settings
           'autoplay': playerOptions.autoplay,
@@ -98,7 +98,7 @@ vjs.Vpaidflash = vjs.MediaTechController.extend({
       'srcnotset',
       'srcnotfound',
       'vpaidcreativeerror'], function(e) {
-      console.warn('error from flash', e);
+      vjs.log.error('error from flash', e);
       player.trigger('vasterror');
     });
   }
@@ -128,7 +128,7 @@ vjs.Vpaidflash.prototype.src = function(src){
 vjs.Vpaidflash.prototype.setSrc = function(source){
   var src;
 
-  if (typeof source === 'object' && source.src) {
+  if (typeof source === 'object') {
     this.el_.vjs_setProperty('adParameters', source['adParameters']);
     this.el_.vjs_setProperty('duration', source['duration']);
     this.el_.vjs_setProperty('bitrate', source['bitrate']);
@@ -139,12 +139,9 @@ vjs.Vpaidflash.prototype.setSrc = function(source){
     // this['trackCurrentTime']();
 
     src = source['src'];
+  } else {
+    src = source;
   }
-
-  // Make sure source URL is absolute.
-  src = vjs.getAbsoluteURL(src);
-
-  this.el_.vjs_src(src);
 
   // Make sure source URL is absolute.
   src = vjs.getAbsoluteURL(src);
@@ -329,7 +326,16 @@ vjs.Vpaidflash['checkReady'] = function(tech){
 
 // Trigger events from the swf on the player
 vjs.Vpaidflash['onEvent'] = function(swfID, eventName){
-  var player = vjs.el(swfID)['player'];
+  var playerEl = vjs.el(swfID);
+  if (!playerEl) {
+    vjs.log.error('vpaidflash', 'unable to find tech ' + swfID);
+    return;
+  }
+  var player = playerEl['player'];
+  if (!player) {
+    vjs.log.error('vpaidflash', 'player not attached to tech ' + swfID);
+    return;
+  }
   // player.trigger({
   //   type: eventName,
   //   arguments: arguments.splice(2)
@@ -339,7 +345,16 @@ vjs.Vpaidflash['onEvent'] = function(swfID, eventName){
 
 // Log errors from the swf
 vjs.Vpaidflash['onError'] = function(swfID, err){
-  var player = vjs.el(swfID)['player'];
+  var playerEl = vjs.el(swfID);
+  if (!playerEl) {
+    vjs.log.error('vpaidflash', 'unable to find tech ' + swfID);
+    return;
+  }
+  var player = playerEl['player'];
+  if (!player) {
+    vjs.log.error('vpaidflash', 'player not attached to tech ' + swfID);
+    return;
+  }
   var msg = 'FLASH: '+err;
 
   if (err == 'srcnotfound') { // jshint ignore:line
@@ -385,15 +400,14 @@ vjs.Vpaidflash.embed = function(swf, placeHolder, flashVars, params, attributes)
   placeHolder.parentNode.replaceChild(obj, placeHolder);
   obj[vjs.expando] = placeHolder[vjs.expando];
 
-  // IE6 seems to have an issue where it won't initialize the swf object after injecting it.
-  // This is a dumb fix
-  var newObj = par.childNodes[0];
-  setTimeout(function(){
-    newObj.style.display = 'block';
-  }, 1000);
+  // // IE6 seems to have an issue where it won't initialize the swf object after injecting it.
+  // // This is a dumb fix
+  // var newObj = par.childNodes[0];
+  // setTimeout(function(){
+  //   newObj.style.display = 'block';
+  // }, 1000);
 
   return obj;
-
 };
 
 vjs.Vpaidflash.getEmbedCode = function(swf, flashVars, params, attributes){
