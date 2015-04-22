@@ -229,8 +229,8 @@
         _player.on('vastskip', skipFn);
         _player.on('vastclose', closeFn);
 
-        _player.on('vastmute', muteFn);
-        _player.on('vastunmute', unmuteFn);
+        _player.on(['admute', 'vastmute'], muteFn);
+        _player.on(['adunmute', 'vastunmute'], unmuteFn);
       };
 
       tracker.removeListeners = function() {
