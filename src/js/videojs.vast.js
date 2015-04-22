@@ -143,41 +143,65 @@
           _player.trigger('adtimeout');
         },
         creativeviewFn = function(e) {
+          if (options.debug) { videojs.log('vast', 'tracker', 'creativeView'); }
+
           tracker.track('creativeView');
         },
         startFn = function(e) {
+          if (options.debug) { videojs.log('vast', 'tracker', 'start'); }
+
           tracker.track('start');
         },
         firstquartileFn = function(e) {
+          if (options.debug) { videojs.log('vast', 'tracker', 'firstQuartile'); }
+
           tracker.track('firstQuartile');
         },
         midpointFn = function(e) {
+          if (options.debug) { videojs.log('vast', 'tracker', 'midpoint'); }
+
           tracker.track('midpoint');
         },
         thirdquartileFn = function(e) {
+          if (options.debug) { videojs.log('vast', 'tracker', 'thirdQuartile'); }
+
           tracker.track('thirdQuartile');
         },
         clicktrackingFn = function(e) {
+          if (options.debug) { videojs.log('vast', 'tracker', 'clickthrough'); }
+
           tracker.click();
         },
         acceptinvitationFn = function(e) {
+          if (options.debug) { videojs.log('vast', 'tracker', 'acceptInvitation'); }
+
           tracker.track('acceptInvitation');
         },
         collapseFn = function(e) {
+          if (options.debug) { videojs.log('vast', 'tracker', 'collapse'); }
+
           tracker.track('collapse');
         },
         skipFn = function(e) {
+          if (options.debug) { videojs.log('vast', 'tracker', 'skip'); }
+
           // TODO: Refactor/merge code from _skipBtn.onclick
           tracker.skip();
           _endAd();
         },
         closeFn = function(e) {
+          if (options.debug) { videojs.log('vast', 'tracker', 'close'); }
+
           tracker.track('close');
         },
         muteFn = function(e) {
+          if (options.debug) { videojs.log('vast', 'tracker', 'mute'); }
+
           tracker.setMuted(true);
         },
         unmuteFn = function(e) {
+          if (options.debug) { videojs.log('vast', 'tracker', 'unmute'); }
+
           tracker.setMuted(false);
         };
 
