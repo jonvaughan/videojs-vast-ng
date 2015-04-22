@@ -223,7 +223,7 @@
         _player.on('vastmidpoint', midpointFn);
         _player.on('vastthirdquartile', thirdquartileFn);
 
-        _player.on('vastclicktracking', clicktrackingFn);
+        _player.on(['adclick', 'vastclicktracking'], clicktrackingFn);
         _player.on('vastacceptinvitation', acceptinvitationFn);
         _player.on('vastcollapse', collapseFn);
         _player.on('vastskip', skipFn);
