@@ -97,14 +97,25 @@ vjs.Vpaidflash = vjs.MediaTechController.extend({
     player.on([
       'srcnotset',
       'srcnotfound',
-      'vpaidcreativeerror'], function(e) {
-      vjs.log.error('error from flash', e);
-      player.trigger('vasterror');
-    });
+      'vpaidcreativeerror'], vjs.Vpaidflash.prototype.onTechError);
   }
 });
 
+vjs.Vpaidflash.prototype.onTechError = function(e) {
+  vjs.log.error('error from flash', e);
+  player.trigger('vasterror');
+};
+
 vjs.Vpaidflash.prototype.dispose = function(){
+  var player = this.player();
+  if (player) {
+    player.off('stageclick', player.reportUserActivity);
+    player.off([
+      'srcnotset',
+      'srcnotfound',
+      'vpaidcreativeerror'], vjs.Vpaidflash.prototype.onTechError);
+  }
+
   vjs.MediaTechController.prototype.dispose.call(this);
 };
 
