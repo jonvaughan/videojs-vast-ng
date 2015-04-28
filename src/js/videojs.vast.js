@@ -439,6 +439,8 @@
 
       _adbreak = null;
 
+      // vjs.log('vast', 'endLinearAdBreak', 'muted=' + _player.muted() + ' volume=' + _player.volume());
+
       _player.play();
     };
 
@@ -478,10 +480,12 @@
 
       _adbreak.count++;
 
+      // vjs.log('vast', 'startAd', 'muted=' + _player.muted() + ' volume=' + _player.volume());
+
       // HACK: Force the tech to be reloaded after the ad finishes
-      if (_player['techName'] === 'Vpaidflash' && _player.ended()) {
+      if (_player.techName === 'Vpaidflash' && _player.ended()) {
         if (options.debug) { videojs.log.warn('vast', 'startAd', 'Forcing Vpaidflash to be reloaded'); }
-        _player['techName'] = null;
+        _player.techName = null;
       }
 
       // load linear ad sources and start playing them
@@ -800,6 +804,8 @@
     _player.on('play', function(e) {
       if (options.debug) { videojs.log('vast', 'play'); }
 
+      videojs.log('vast', 'play', 'tech=' + _player.techName + ' muted=' + _player.muted() + ' volume=' + _player.volume());
+
       if (_adbreak) {
         if (options.debug) { videojs.log.warn('vast', 'play', 'ignored: ad break already going running', _adbreak); }
         return;
@@ -816,6 +822,8 @@
 
     _player.on('contentplayback', function(e) {
       if (options.debug) { videojs.log('vast', 'contentplayback', e.triggerevent); }
+
+      // vjs.log('vast', 'startAd', 'muted=' + _player.muted() + ' volume=' + _player.volume());
     });
 
     _player.on('contentpause', function(e) {

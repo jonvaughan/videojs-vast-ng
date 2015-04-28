@@ -92,14 +92,34 @@ vjs.Vpaidflash = vjs.MediaTechController.extend({
     // use stageclick events triggered from inside the SWF instead
     player.on('stageclick', player.reportUserActivity);
 
-    this.el_ = vjs.Flash.embed(options['swf'], this.el_, flashVars, params, attributes);
+    player.on('vastmute', vjs.Vpaidflash.prototype.onMute);
+
+    player.on('vastunmute', vjs.Vpaidflash.prototype.onUnmute);
 
     player.on([
       'srcnotset',
       'srcnotfound',
       'vpaidcreativeerror'], vjs.Vpaidflash.prototype.onTechError);
+
+    this.el_ = vjs.Vpaidflash.embed(options['swf'], this.el_, flashVars, params, attributes);
   }
 });
+
+vjs.Vpaidflash.prototype.onMute = function () {
+  var player = this.player();
+  console.error('onMute', player);
+  // player.muted(true);
+  console.error('AFTER onMute', player.muted(), player.volume());
+
+  // this.el_.vjs_setProperty('muted', true);
+};
+
+vjs.Vpaidflash.prototype.onUnmute = function () {
+  var player = this.player();
+  console.error('onUnmute', player);
+  // player.muted(false);
+  console.error('AFTER onUnmute', player.muted(), player.volume());
+};
 
 vjs.Vpaidflash.prototype.onTechError = function(e) {
   vjs.log.error('error from flash', e);
@@ -109,6 +129,8 @@ vjs.Vpaidflash.prototype.onTechError = function(e) {
 vjs.Vpaidflash.prototype.dispose = function(){
   var player = this.player();
   if (player) {
+    player.off('vastmute', vjs.Vpaidflash.prototype.onMute);
+    player.off('vastunmute', vjs.Vpaidflash.prototype.onUnmute);
     player.off('stageclick', player.reportUserActivity);
     player.off([
       'srcnotset',
@@ -146,8 +168,6 @@ vjs.Vpaidflash.prototype.setSrc = function(source){
     this.el_.vjs_setProperty('width', source['width']);
     this.el_.vjs_setProperty('height', source['height']);
     this.el_.vjs_setProperty('duration', source['duration']);
-
-    // this['trackCurrentTime']();
 
     src = source['src'];
   } else {
