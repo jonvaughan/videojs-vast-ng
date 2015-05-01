@@ -804,7 +804,7 @@
     _player.on('play', function(e) {
       if (options.debug) { videojs.log('vast', 'play'); }
 
-      videojs.log('vast', 'play', 'tech=' + _player.techName + ' muted=' + _player.muted() + ' volume=' + _player.volume());
+      // videojs.log('vast', 'play', 'tech=' + _player.techName + ' muted=' + _player.muted() + ' volume=' + _player.volume());
 
       if (_adbreak) {
         if (options.debug) { videojs.log.warn('vast', 'play', 'ignored: ad break already going running', _adbreak); }
