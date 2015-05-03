@@ -13,6 +13,25 @@
   'use strict';
 
   function vast(options) {
+    // merge in default values
+    options = videojs.util.mergeOptions({
+      debug: false,
+      skip: 5,
+      customURLHandler: null,
+      maxAdAttempts: 1,
+      maxAdCount: 1,
+      adParameters: {},
+      vastTimeout: 5000
+    }, options);
+
+    if (isNaN(options.maxAdAttempts)) {
+      throw 'vast plugin error: invalid maxAdAttempts value \'' + options.maxAdAttempts + '\'';
+    }
+
+    if (isNaN(options.maxAdCount)) {
+      throw 'vast plugin error: invalid maxAdCount value \'' + options.maxAdCount + '\'';
+    }
+
     var
       _player = this, // jshint ignore:line
       _playerEl = _player.el(),
@@ -833,7 +852,9 @@
     _player.on('readyforpreroll', function() {
       if (options.debug) { videojs.log('vast', 'readyforpreroll'); }
 
-      if (!_adbreak) {
+      if (!_adbreak ||
+        isNaN(options.maxAdAttempts) ||
+        isNaN(options.maxAdCount)) {
         if (options.debug) { videojs.log.error('vast', 'readyforpreroll', 'no ad break found'); }
         _player.trigger('adserror');
         return;
@@ -854,17 +875,6 @@
       _player.vast.ensureLeaveAdBreak();
       _player.trigger('adserror');
     });
-
-    // merge in default values
-    options = videojs.util.mergeOptions({
-      debug: false,
-      skip: 5,
-      customURLHandler: null,
-      maxAdAttempts: 1,
-      maxAdCount: 1,
-      adParameters: {},
-      vastTimeout: 5000
-    }, options);
   }
 
   videojs.plugin('vast', vast);
