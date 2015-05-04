@@ -21,7 +21,8 @@
       maxAdAttempts: 1,
       maxAdCount: 1,
       adParameters: {},
-      vastTimeout: 5000
+      vastTimeout: 5000,
+      companionPrefix: this.id() + '-companion-'
     }, options);
 
     if (isNaN(options.maxAdAttempts)) {
@@ -391,7 +392,7 @@
     var _updateCompanions = function() {
       for(var i=0; i<_companions.variations.length; i++) {
         var comp = _companions.variations[i];
-        var q = '#' + _player.id() + '-companion-' + comp.width + 'x' + comp.height;
+        var q = '#' + options.companionPrefix + comp.width + 'x' + comp.height;
         var compEl = document.querySelector(q);
 
         if (!compEl) {
@@ -769,6 +770,14 @@
 
     _player.vast.currentAdCount = function() {
       return _adbreak ? _adbreak.count : undefined;
+    };
+
+    _player.vast.companionPrefix = function(companionPrefix) {
+      if (companionPrefix === undefined) {
+        return options.companionPrefix;
+      } else {
+        options.companionPrefix = companionPrefix;
+      }
     };
 
     // check that we have the ads plugin
