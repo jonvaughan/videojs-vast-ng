@@ -22,15 +22,15 @@
       maxAdCount: 1,
       adParameters: {},
       vastTimeout: 5000,
-      companionPrefix: this.id() + '-companion-'
+      companionPrefix: this.id() + '-companion-' // jshint ignore:line
     }, options);
 
     if (isNaN(options.maxAdAttempts)) {
-      throw 'vast plugin error: invalid maxAdAttempts value \'' + options.maxAdAttempts + '\'';
+      throw 'vast plugin init error: invalid maxAdAttempts value \'' + options.maxAdAttempts + '\'';
     }
 
     if (isNaN(options.maxAdCount)) {
-      throw 'vast plugin error: invalid maxAdCount value \'' + options.maxAdCount + '\'';
+      throw 'vast plugin init error: invalid maxAdCount value \'' + options.maxAdCount + '\'';
     }
 
     var
