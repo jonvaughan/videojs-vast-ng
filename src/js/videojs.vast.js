@@ -17,11 +17,12 @@
     options = videojs.util.mergeOptions({
       debug: false,
       skip: 5,
-      customURLHandler: null,
+      vastURLHandler: null,
       maxAdAttempts: 1,
       maxAdCount: 1,
       adParameters: {},
       vastTimeout: 5000,
+      adResponseHandler: null,
       companionPrefix: this.id() + '-companion-' // jshint ignore:line
     }, options);
 
@@ -140,7 +141,7 @@
           // Inform ad server we couldn't play the media file for this ad
           dmvast.util.track(tracker.ad.errorURLTemplates, {ERRORCODE: 405});
           errorOccurred = true;
-          tracker.removeListeners();
+          tracker.destroyListeners();
           _player.vast.ensureLeaveAdBreak();
           _player.trigger('adserror');
         },
@@ -151,14 +152,14 @@
             tracker.complete();
           }
 
-          tracker.removeListeners();
+          tracker.destroyListeners();
         },
         timeoutFn = function(e) {
           if (options.debug) { videojs.log('vast', 'tracker', 'adtimeout', e); }
           // Inform ad server we couldn't play the media file for this ad
           dmvast.util.track(tracker.ad.errorURLTemplates, {ERRORCODE: 402});
           errorOccurred = true;
-          tracker.removeListeners();
+          tracker.destroyListeners();
           _player.vast.ensureLeaveAdBreak();
           _player.trigger('adtimeout');
         },
@@ -225,8 +226,8 @@
           tracker.setMuted(false);
         };
 
-      tracker.addListeners = function() {
-        if (options.debug) { videojs.log('vast', 'tracker', 'addListeners'); }
+      tracker.initListeners = function() {
+        if (options.debug) { videojs.log('vast', 'tracker', 'initListeners'); }
         _player.on(['vastimpression', 'adcanplay'], canplayFn);
         _player.on('addurationchange', durationchangeFn);
         _player.on('adtimeupdate', timeupdateFn);
@@ -253,8 +254,8 @@
         _player.on(['adunmute', 'vastunmute'], unmuteFn);
       };
 
-      tracker.removeListeners = function() {
-        if (options.debug) { videojs.log('vast', 'tracker', 'removeListeners'); }
+      tracker.destroyListeners = function() {
+        if (options.debug) { videojs.log('vast', 'tracker', 'destroyListeners'); }
         _player.off(['vastimpression', 'adcanplay'], canplayFn);
         _player.off('addurationchange', durationchangeFn);
         _player.off('adtimeupdate', timeupdateFn);
@@ -461,7 +462,12 @@
 
       // vjs.log('vast', 'endLinearAdBreak', 'muted=' + _player.muted() + ' volume=' + _player.volume());
 
-      _player.play();
+      if (_player.ads.contentSrc) {
+        _player.play();
+      } else {
+        _player.vast.requestAdBreak({ type: 'nocontent' });
+        _player.play();
+      }
     };
 
     var _endAd = function(forceEndAdBreak) {
@@ -528,6 +534,90 @@
       _player.play();
     };
 
+    _player.vast.defaultAdResponseHandler = function(immediatePlayback, response, parentURLs) {
+      if (!response) {
+        // no valid response found so exit from ad break
+        _player.trigger('adscanceled');
+        return;
+      }
+
+      // TODO: Rework code to support VAST 3 AD Pods
+
+      // we got a response, deal with it
+      for (var i = 0; i < response.ads.length; i++) {
+        var ad = response.ads[i];
+        var foundCreative = false, foundCompanion = false;
+        for (var j = 0; j < ad.creatives.length && (!foundCreative || !foundCompanion); j++) {
+          var creative = ad.creatives[j];
+
+          switch(creative.type) {
+            case 'linear':
+
+              if (foundCreative) {
+                videojs.log.warn('vast', 'loadVAST', 'ignoring linear; already found one');
+                continue;
+              }
+
+              if (!creative.mediaFiles.length) {
+                videojs.log.warn('vast', 'loadVAST', 'ignoring linear; no media files found');
+                continue;
+              }
+
+              var sources = _createSourceObjects(creative.mediaFiles, creative.adParameters);
+
+              if (sources && sources.length) {
+                _sources = sources;
+                foundCreative = true;
+
+                _tracker = richTracker(new dmvast.tracker(ad, creative));
+                _tracker.initListeners();
+              }
+
+              break;
+
+            case 'companion':
+
+              if (foundCompanion) {
+                videojs.log.warn('vast', 'loadVAST', 'ignoring companion; already found one');
+                continue;
+              }
+
+              _companions = creative;
+
+              foundCompanion = true;
+
+              break;
+
+            default:
+
+              videojs.log.warn('vast', 'loadVAST', 'unknown creative found:', creative);
+          }
+        }
+
+        if (foundCreative) {
+          if (options.debug) { videojs.log('vast', 'loadVAST', 'found VAST'); }
+
+          if (immediatePlayback) {
+            if (options.debug) { videojs.log.warn('vast', 'loadVAST', 'immediate AD playback!'); }
+            setTimeout(_startAd, 1);
+          } else {
+            // vast tracker and content is ready to go, trigger event
+            _player.trigger('adsready');
+          }
+          return;
+        }
+
+        _sources = undefined;
+        _companions = undefined;
+
+        // inform ad server we can't find suitable media file for this ad
+        dmvast.util.track(ad.errorURLTemplates, {ERRORCODE: 403});
+      }
+
+      // no ads found: lets cancel the ad break
+      _player.trigger('adscanceled');
+    };
+
     var _loadVAST = function(immediatePlayback) {
       if (options.debug) { videojs.log('vast', 'loadVAST'); }
 
@@ -549,13 +639,13 @@
 
       _adbreak.requestId = vastRequestId;
 
-      if (options.debug && options.customURLHandler) {
-        videojs.log('vast', 'loadVAST', 'custom URLHandler provided: supported=' + options.customURLHandler.supported());
+      if (options.debug && options.vastURLHandler) {
+        videojs.log('vast', 'loadVAST', 'custom URLHandler provided: supported=' + options.vastURLHandler.supported());
       }
 
       var getOptions = {
         // withCredentials: true,
-        urlhandler: options.customURLHandler,
+        urlhandler: options.vastURLHandler,
         timeout: options.vastTimeout
       };
 
@@ -571,8 +661,8 @@
         videojs.log('vast', 'loadVAST', 'ad requested (' + vastRequestId + '): ' + url);
       }
 
-      dmvast.client.get(url, getOptions, function(response) {
-        if (options.debug) { videojs.log('vast', 'loadVAST', 'response (' + vastRequestId + ')', response); }
+      dmvast.client.get(url, getOptions, function(response, parentURLs) {
+        if (options.debug) { videojs.log('vast', 'loadVAST', 'response (' + vastRequestId + ')', response, parentURLs); }
 
         if (!_adbreak || (_adbreak.requestId !== null && vastRequestId !== _adbreak.requestId)) {
           if (options.debug) { videojs.log.error('vast', 'loadVAST', 'ignore response (' + vastRequestId + ') as another vast request (' + (_adbreak ? _adbreak.requestId : null) + ') is in flight!'); }
@@ -581,83 +671,10 @@
 
         _adbreak.requestId = null;
 
-        if (response) {
-          // TODO: Rework code to support VAST 3 AD Pods
+        var cb = options.adResponseHandler || _player.vast.defaultAdResponseHandler;
 
-          // we got a response, deal with it
-          for (var i = 0; i < response.ads.length; i++) {
-            var ad = response.ads[i];
-            var foundCreative = false, foundCompanion = false;
-            for (var j = 0; j < ad.creatives.length && (!foundCreative || !foundCompanion); j++) {
-              var creative = ad.creatives[j];
-
-              switch(creative.type) {
-                case 'linear':
-
-                  if (foundCreative) {
-                    videojs.log.warn('vast', 'loadVAST', 'ignoring linear; already found one');
-                    continue;
-                  }
-
-                  if (!creative.mediaFiles.length) {
-                    videojs.log.warn('vast', 'loadVAST', 'ignoring linear; no media files found');
-                    continue;
-                  }
-
-                  var sources = _createSourceObjects(creative.mediaFiles, creative.adParameters);
-
-                  if (sources && sources.length) {
-                    _sources = sources;
-                    foundCreative = true;
-
-                    _tracker = richTracker(new dmvast.tracker(ad, creative));
-                    _tracker.addListeners();
-                  }
-
-                  break;
-
-                case 'companion':
-
-                  if (foundCompanion) {
-                    videojs.log.warn('vast', 'loadVAST', 'ignoring companion; already found one');
-                    continue;
-                  }
-
-                  _companions = creative;
-
-                  foundCompanion = true;
-
-                  break;
-
-                default:
-
-                  videojs.log.warn('vast', 'loadVAST', 'unknown creative found:', creative);
-              }
-            }
-
-            if (foundCreative) {
-              if (options.debug) { videojs.log('vast', 'loadVAST', 'found VAST'); }
-
-              if (immediatePlayback) {
-                if (options.debug) { videojs.log.warn('vast', 'loadVAST', 'immediate AD playback!'); }
-                setTimeout(_startAd, 1);
-              } else {
-                // vast tracker and content is ready to go, trigger event
-                _player.trigger('adsready');
-              }
-              return;
-            }
-
-            _sources = undefined;
-            _companions = undefined;
-
-            // inform ad server we can't find suitable media file for this ad
-            dmvast.util.track(ad.errorURLTemplates, {ERRORCODE: 403});
-          }
-        }
-
-        // no ads found: lets cancel the ad break
-        _player.trigger('adscanceled');
+        // handle ad response
+        cb(immediatePlayback, response, parentURLs);
       });
 
       _player.trigger('vastrequesting');
@@ -670,7 +687,7 @@
       _companions = null;
 
       if (_tracker) {
-        _tracker.removeListeners();
+        _tracker.destroyListeners();
       }
 
       _tracker = null;
@@ -718,6 +735,26 @@
       if (options.debug) { videojs.log('vast', 'ensureLeaveAdBreak'); }
 
       _endAd(true);
+    };
+
+    _player.vast.retryAdAttempt = function(forceEndAdBreak) {
+      _endAd(forceEndAdBreak);
+    };
+
+    _player.vast.adResponseHandler = function(handler) {
+      if (handler === undefined) {
+        return options.adResponseHandler;
+      } else {
+        options.adResponseHandler = handler;
+      }
+    };
+
+    _player.vast.vastURLHandler = function(vastURLHandler) {
+      if (vastURLHandler === undefined) {
+        return options.vastURLHandler;
+      } else {
+        options.vastURLHandler = vastURLHandler;
+      }
     };
 
     _player.vast.tracker = function() {
