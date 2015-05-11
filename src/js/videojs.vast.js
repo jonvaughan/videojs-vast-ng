@@ -337,6 +337,7 @@
             if (options.debug) { videojs.log('vast', 'skipBtn clicked'); }
             _tracker.skip();
             _endAd();
+            _player.trigger('adskipped');
           }
 
           if(window.Event.prototype.stopPropagation !== undefined) {
