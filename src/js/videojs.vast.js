@@ -20,7 +20,6 @@
       vastURLHandler: null,
       maxAdAttempts: 1,
       maxAdCount: 1,
-      adParameters: {},
       vastTimeout: 5000,
       adResponseHandler: null,
       companionPrefix: this.id() + '-companion-' // jshint ignore:line
@@ -649,13 +648,7 @@
         timeout: options.vastTimeout
       };
 
-      var url;
-
-      if (!videojs.util.isEmptyObject(options.adParameters)) {
-        url = options.url + (options.url.indexOf('?') === -1 ? '?' : '&') + videojs.util.param(options.adParameters);
-      } else {
-        url = options.url;
-      }
+      var url = options.url;
 
       if (options.debug) {
         videojs.log('vast', 'loadVAST', 'ad requested (' + vastRequestId + '): ' + url);
@@ -774,14 +767,6 @@
         return options.url;
       } else {
         options.url = url;
-      }
-    };
-
-    _player.vast.adParameters = function(adParameters) {
-      if (adParameters === undefined) {
-        return options.adParameters;
-      } else {
-        options.adParameters = adParameters;
       }
     };
 
