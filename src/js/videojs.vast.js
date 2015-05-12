@@ -142,7 +142,7 @@
           dmvast.util.track(tracker.ad.errorURLTemplates, {ERRORCODE: 405});
           errorOccurred = true;
           tracker.destroyListeners();
-          _player.vast.ensureLeaveAdBreak();
+          _player.vast.ensureLeaveAdBreak(true);
           _player.trigger('adserror');
         },
         endedFn = function(e) {
@@ -160,7 +160,7 @@
           dmvast.util.track(tracker.ad.errorURLTemplates, {ERRORCODE: 402});
           errorOccurred = true;
           tracker.destroyListeners();
-          _player.vast.ensureLeaveAdBreak();
+          _player.vast.ensureLeaveAdBreak(true);
           _player.trigger('adtimeout');
         },
         creativeviewFn = function(e) {
@@ -208,7 +208,7 @@
 
           // TODO: Refactor/merge code from _skipBtn.onclick
           tracker.skip();
-          _endAd();
+          _endAd(false, true);
         },
         closeFn = function(e) {
           if (options.debug) { videojs.log('vast', 'tracker', 'close'); }
@@ -337,7 +337,7 @@
           if(!_skipBtn.disabled && _skipBtn.className.indexOf(' enabled') !== -1) {
             if (options.debug) { videojs.log('vast', 'skipBtn clicked'); }
             _tracker.skip();
-            _endAd();
+            _endAd(false, true);
             _player.trigger('adskipped');
           }
 
@@ -466,7 +466,7 @@
       _player.play();
     };
 
-    var _endAd = function(forceEndAdBreak) {
+    var _endAd = function(forceEndAdBreak, triggerAdLeaveEvent) {
       if (options.debug) { videojs.log('vast', 'endAd', _player.ads.state); }
 
       _player.off('adended', _endAd);
@@ -488,14 +488,16 @@
         _adbreak.attempts >= options.maxAdAttempts ||
         _adbreak.count >= options.maxAdCount) {
 
-        switch(_player.ads.state) {
-          case 'content-set':
-          case 'ads-ready?':
-            _player.trigger('adscanceled');
-            break;
-          default:
-            _player.trigger('adserror');
-            break;
+        if (triggerAdLeaveEvent) {
+          switch(_player.ads.state) {
+            case 'content-set':
+            case 'ads-ready?':
+              _player.trigger('adscanceled');
+              break;
+            default:
+              _player.trigger('adserror');
+              break;
+          }
         }
 
         var a = _player.vast.currentAdAttempt();
@@ -665,12 +667,12 @@
 
       var url = options.url;
 
-      if (options.debug) {
-        videojs.log('vast', 'loadVAST', 'ad requested (' + vastRequestId + '): ' + url);
-      }
-
       if (options.adTagUrlHandler) {
         url = options.adTagUrlHandler(url);
+      }
+
+      if (options.debug) {
+        videojs.log('vast', 'loadVAST', 'ad requested (' + vastRequestId + '): ' + url);
       }
 
       dmvast.client.get(url, getOptions, function(response, parentURLs) {
@@ -747,10 +749,10 @@
       }
     };
 
-    _player.vast.ensureLeaveAdBreak = function() {
+    _player.vast.ensureLeaveAdBreak = function(triggerAdLeaveEvent) {
       if (options.debug) { videojs.log('vast', 'ensureLeaveAdBreak'); }
 
-      _endAd(true);
+      _endAd(true, triggerAdLeaveEvent);
     };
 
     _player.vast.adTagUrlHandler = function(handler) {
@@ -762,7 +764,7 @@
     };
 
     _player.vast.retryAdAttempt = function(forceEndAdBreak) {
-      _endAd(forceEndAdBreak);
+      _endAd(forceEndAdBreak, true);
     };
 
     _player.vast.adResponseHandler = function(handler) {
@@ -870,7 +872,7 @@
       // the player to leave the running AD break so we can initialize
       // another one.
       if (_player.ads.state === 'ad-playback') {
-        _player.vast.ensureLeaveAdBreak();
+        _player.vast.ensureLeaveAdBreak(true);
       }
     });
 
@@ -927,14 +929,13 @@
 
     _player.on(['adtimeout', 'adscanceled', 'adserror'], function(e) {
       if (options.debug) { videojs.log.warn('force stop stop ad', e.type); }
-      _player.vast.ensureLeaveAdBreak();
+      _player.vast.ensureLeaveAdBreak(false);
     });
 
     // HACK: HTTP 404 on the src will trigger a 'error' event;
     // add hack to convert it to adserror
     _player.on(['aderror'], function(e) {
       if (options.debug) { videojs.log.error('vast', 'aderror -> adserror'); }
-      _player.vast.ensureLeaveAdBreak();
       _player.trigger('adserror');
     });
   }
