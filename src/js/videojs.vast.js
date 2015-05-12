@@ -462,12 +462,7 @@
 
       // vjs.log('vast', 'endLinearAdBreak', 'muted=' + _player.muted() + ' volume=' + _player.volume());
 
-      if (_player.ads.contentSrc) {
-        _player.play();
-      } else {
-        _player.vast.requestAdBreak({ type: 'nocontent' });
-        _player.play();
-      }
+      _player.play();
     };
 
     var _endAd = function(forceEndAdBreak) {
@@ -491,6 +486,17 @@
       if (forceEndAdBreak === true ||
         _adbreak.attempts >= options.maxAdAttempts ||
         _adbreak.count >= options.maxAdCount) {
+
+        if (_player.ads.state === 'ads-ready?') {
+          _player.trigger('adscanceled');
+        }
+
+        var a = _player.vast.currentAdAttempt();
+        var ma = _player.vast.maxAdAttempts();
+        var c = _player.vast.currentAdCount();
+        var mc = _player.vast.maxAdCount();
+        if (options.debug) { videojs.log('vast', 'endAd', 'state: ', _player.ads.state, 'exhaused attempts: ' + a + '/' + ma, ', count: ' + c + '/' + mc); }
+
         _endLinearAdBreak();
       } else {
         _loadVAST(true);
@@ -537,7 +543,8 @@
     _player.vast.defaultAdResponseHandler = function(immediatePlayback, response, parentURLs) {
       if (!response) {
         // no valid response found so exit from ad break
-        _player.trigger('adscanceled');
+        // _player.trigger('adscanceled');
+        _player.vast.retryAdAttempt(false);
         return;
       }
 
@@ -656,7 +663,11 @@
       }
 
       dmvast.client.get(url, getOptions, function(response, parentURLs) {
-        if (options.debug) { videojs.log('vast', 'loadVAST', 'response (' + vastRequestId + ')', response, parentURLs); }
+        var a = _player.vast.currentAdAttempt();
+        var ma = _player.vast.maxAdAttempts();
+        var c = _player.vast.currentAdCount();
+        var mc = _player.vast.maxAdCount();
+        if (options.debug) { videojs.log('vast', 'loadVAST', 'response (' + vastRequestId + ')', response, parentURLs, 'attempts: ' + a + '/' + ma, ', count: ' + c + '/' + mc); }
 
         if (!_adbreak || (_adbreak.requestId !== null && vastRequestId !== _adbreak.requestId)) {
           if (options.debug) { videojs.log.error('vast', 'loadVAST', 'ignore response (' + vastRequestId + ') as another vast request (' + (_adbreak ? _adbreak.requestId : null) + ') is in flight!'); }
@@ -853,7 +864,7 @@
     });
 
     _player.on('play', function(e) {
-      if (options.debug) { videojs.log('vast', 'play'); }
+      if (options.debug) { videojs.log('vast', 'play', _player.ads.state, e.type, _player.ads.triggerevent.type); }
 
       // videojs.log('vast', 'play', 'tech=' + _player.techName + ' muted=' + _player.muted() + ' volume=' + _player.volume());
 
