@@ -22,6 +22,7 @@
       maxAdCount: 1,
       vastTimeout: 5000,
       adResponseHandler: null,
+      adTagUrlHandler: null,
       companionPrefix: this.id() + '-companion-' // jshint ignore:line
     }, options);
 
@@ -487,8 +488,14 @@
         _adbreak.attempts >= options.maxAdAttempts ||
         _adbreak.count >= options.maxAdCount) {
 
-        if (_player.ads.state === 'ads-ready?') {
-          _player.trigger('adscanceled');
+        switch(_player.ads.state) {
+          case 'content-set':
+          case 'ads-ready?':
+            _player.trigger('adscanceled');
+            break;
+          default:
+            _player.trigger('adserror');
+            break;
         }
 
         var a = _player.vast.currentAdAttempt();
@@ -662,6 +669,10 @@
         videojs.log('vast', 'loadVAST', 'ad requested (' + vastRequestId + '): ' + url);
       }
 
+      if (options.adTagUrlHandler) {
+        url = options.adTagUrlHandler(url);
+      }
+
       dmvast.client.get(url, getOptions, function(response, parentURLs) {
         var a = _player.vast.currentAdAttempt();
         var ma = _player.vast.maxAdAttempts();
@@ -740,6 +751,14 @@
       if (options.debug) { videojs.log('vast', 'ensureLeaveAdBreak'); }
 
       _endAd(true);
+    };
+
+    _player.vast.adTagUrlHandler = function(handler) {
+      if (handler === undefined) {
+        return options.adTagUrlHandler;
+      } else {
+        options.adTagUrlHandler = handler;
+      }
     };
 
     _player.vast.retryAdAttempt = function(forceEndAdBreak) {
