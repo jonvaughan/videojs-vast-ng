@@ -36,6 +36,7 @@ vjs.Vpaidflash = vjs.MediaTechController.extend({
           'errorEventProxyFunction': 'videojs.Vpaidflash.onError',
 
           // Player Settings
+          'debug': playerOptions.debug,
           'autoplay': playerOptions.autoplay,
           'preload': playerOptions.preload,
           'loop': playerOptions.loop,
@@ -107,18 +108,18 @@ vjs.Vpaidflash = vjs.MediaTechController.extend({
 
 vjs.Vpaidflash.prototype.onMute = function () {
   var player = this.player();
-  console.error('onMute', player);
+  // videojs.log.error('onMute', player);
   // player.muted(true);
-  console.error('AFTER onMute', player.muted(), player.volume());
+  // videojs.log.error('AFTER onMute', player.muted(), player.volume());
 
   // this.el_.vjs_setProperty('muted', true);
 };
 
 vjs.Vpaidflash.prototype.onUnmute = function () {
   var player = this.player();
-  console.error('onUnmute', player);
+  videojs.log.error('onUnmute', player);
   // player.muted(false);
-  console.error('AFTER onUnmute', player.muted(), player.volume());
+  videojs.log.error('AFTER onUnmute', player.muted(), player.volume());
 };
 
 vjs.Vpaidflash.prototype.onTechError = function(e) {
@@ -164,7 +165,7 @@ vjs.Vpaidflash.prototype.setSrc = function(source){
   if (typeof source === 'object') {
     this.el_.vjs_setProperty('adParameters', source['adParameters']);
     this.el_.vjs_setProperty('duration', source['duration']);
-    this.el_.vjs_setProperty('bitrate', source['bitrate']);
+    this.el_.vjs_setProperty('bitrate', source['bitrate'] > 0 ? source['bitrate'] : 500);
     this.el_.vjs_setProperty('width', source['width']);
     this.el_.vjs_setProperty('height', source['height']);
     this.el_.vjs_setProperty('duration', source['duration']);
@@ -182,7 +183,7 @@ vjs.Vpaidflash.prototype.setSrc = function(source){
   // e.g. Load player w/ no source, wait 2s, set src.
   if (this.player_.autoplay()) {
     var tech = this;
-    this.setTimeout(function(){ tech.play(); }, 0);
+    // this.setTimeout(function(){ tech.play(); }, 0);
   }
 };
 

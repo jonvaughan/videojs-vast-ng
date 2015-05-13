@@ -141,9 +141,7 @@
           // Inform ad server we couldn't play the media file for this ad
           dmvast.util.track(tracker.ad.errorURLTemplates, {ERRORCODE: 405});
           errorOccurred = true;
-          tracker.destroyListeners();
-          _player.vast.ensureLeaveAdBreak(true);
-          _player.trigger('adserror');
+          _player.vast.retryAdAttempt(false);
         },
         endedFn = function(e) {
           if (options.debug) { videojs.log('vast', 'tracker', 'adended'); }
@@ -151,17 +149,13 @@
           if (!errorOccurred) {
             tracker.complete();
           }
-
-          tracker.destroyListeners();
         },
         timeoutFn = function(e) {
           if (options.debug) { videojs.log('vast', 'tracker', 'adtimeout', e); }
           // Inform ad server we couldn't play the media file for this ad
           dmvast.util.track(tracker.ad.errorURLTemplates, {ERRORCODE: 402});
           errorOccurred = true;
-          tracker.destroyListeners();
-          _player.vast.ensureLeaveAdBreak(true);
-          _player.trigger('adtimeout');
+          _player.vast.retryAdAttempt(false);
         },
         creativeviewFn = function(e) {
           if (options.debug) { videojs.log('vast', 'tracker', 'creativeView'); }
@@ -504,7 +498,7 @@
         var ma = _player.vast.maxAdAttempts();
         var c = _player.vast.currentAdCount();
         var mc = _player.vast.maxAdCount();
-        if (options.debug) { videojs.log('vast', 'endAd', 'state: ', _player.ads.state, 'exhaused attempts: ' + a + '/' + ma, ', count: ' + c + '/' + mc); }
+        if (options.debug) { videojs.log('vast', 'endAd', 'state: ', _player.ads.state, 'force end adbreak: ', forceEndAdBreak, 'exhaused attempts: ' + a + '/' + ma, ', count: ' + c + '/' + mc); }
 
         _endLinearAdBreak();
       } else {
@@ -513,7 +507,7 @@
     };
 
     var _startAd = function() {
-      if (options.debug) { videojs.log('vast', 'startAd', _player.ads.state); }
+      if (options.debug) { videojs.log('vast', 'startAd', _player.ads.state, _player.techName); }
 
       if (_player.ads.state !== 'ad-playback') {
         _startLinearAdBreak();
@@ -539,7 +533,7 @@
         _addSkipBtn();
       }
 
-      if (options.debug) { videojs.log('vast', 'using tech: ' + _player.techName); }
+      if (options.debug) { videojs.log('vast', 'using tech: ' + _player.techName, _player.ads.state); }
 
       if (_companions) {
         _updateCompanions();
