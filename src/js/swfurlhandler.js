@@ -23,7 +23,7 @@
       supported: function() {
         return CrossXHR &&
           videojs.Flash.isSupported() &&
-          videojs.Flash.version()[0] >= 12;
+          videojs.Flash.version()[0] >= 11;
       },
 
       get: function(url, options, cb) {

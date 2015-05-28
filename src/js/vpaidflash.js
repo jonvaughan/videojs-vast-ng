@@ -215,6 +215,10 @@ vjs.Vpaidflash.prototype.load = function(){
 };
 
 vjs.Vpaidflash.prototype.buffered = function(){
+  if (!this.el_) {
+    return vjs.createTimeRange(0, 0);
+  }
+
   return vjs.createTimeRange(0, this.el_.vjs_getProperty('buffered'));
 };
 
@@ -230,7 +234,7 @@ vjs.Vpaidflash.prototype.enterFullScreen = function(){
   // Create setters and getters for attributes
   var api = vjs.Vpaidflash.prototype,
     readWrite = 'preload,defaultPlaybackRate,playbackRate,autoplay,loop,mediaGroup,controller,controls,volume,muted,defaultMuted'.split(','),
-    readOnly = 'buffered,error,networkState,readyState,seeking,initialTime,duration,startOffsetTime,paused,played,seekable,ended,videoTracks,audioTracks,width,height'.split(','),
+    readOnly = 'error,networkState,readyState,seeking,initialTime,duration,startOffsetTime,paused,played,seekable,ended,videoTracks,audioTracks,width,height'.split(','),
     // Overridden: buffered, currentTime, currentSrc
     i;
 
@@ -391,12 +395,14 @@ vjs.Vpaidflash['onError'] = function(swfID, err){
 
   if (err == 'srcnotfound') { // jshint ignore:line
     player.error({ code: 4, message: msg });
-  } if (err === 'vpaidcreativetimeout') {
+    player.trigger('aderror');
+  } else if (err === 'vpaidcreativetimeout') {
     player.trigger('vasttimeout');
 
   // errors we haven't categorized into the media errors
   } else {
     player.error(msg);
+    player.trigger('aderror');
   }
 };
 
