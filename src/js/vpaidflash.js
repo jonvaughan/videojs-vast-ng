@@ -159,20 +159,16 @@ vjs.Vpaidflash.prototype.src = function(src){
   return this.setSrc(src);
 };
 
-vjs.Vpaidflash.prototype.setSrc = function(source){
-  var src;
+vjs.Vpaidflash.prototype.setSrc = function(src){
+  if (typeof src === 'object') {
+    this.el_.vjs_setProperty('adParameters', src['adParameters']);
+    this.el_.vjs_setProperty('duration', src['duration']);
+    this.el_.vjs_setProperty('bitrate', src['bitrate'] > 0 ? src['bitrate'] : 500);
+    this.el_.vjs_setProperty('duration', src['duration']);
 
-  if (typeof source === 'object') {
-    this.el_.vjs_setProperty('adParameters', source['adParameters']);
-    this.el_.vjs_setProperty('duration', source['duration']);
-    this.el_.vjs_setProperty('bitrate', source['bitrate'] > 0 ? source['bitrate'] : 500);
-    this.el_.vjs_setProperty('width', source['width']);
-    this.el_.vjs_setProperty('height', source['height']);
-    this.el_.vjs_setProperty('duration', source['duration']);
-
-    src = source['src'];
+    src = src['src'];
   } else {
-    src = source;
+    src = src;
   }
 
   // Make sure source URL is absolute.
@@ -183,7 +179,7 @@ vjs.Vpaidflash.prototype.setSrc = function(source){
   // e.g. Load player w/ no source, wait 2s, set src.
   if (this.player_.autoplay()) {
     var tech = this;
-    // this.setTimeout(function(){ tech.play(); }, 0);
+    this.setTimeout(function(){ tech.play(); }, 0);
   }
 };
 
@@ -210,15 +206,19 @@ vjs.Vpaidflash.prototype['currentSrc'] = function(){
   }
 };
 
+vjs.Vpaidflash.prototype.seekable = function() {
+  return vjs.createTimeRange();
+};
+
 vjs.Vpaidflash.prototype.load = function(){
   this.el_.vjs_load();
 };
 
-vjs.Vpaidflash.prototype.buffered = function(){
-  if (!this.el_) {
-    return vjs.createTimeRange(0, 0);
-  }
+vjs.Vpaidflash.prototype.seekable = function() {
+  return vjs.createTimeRange();
+};
 
+vjs.Vpaidflash.prototype.buffered = function(){
   return vjs.createTimeRange(0, this.el_.vjs_getProperty('buffered'));
 };
 
@@ -234,7 +234,7 @@ vjs.Vpaidflash.prototype.enterFullScreen = function(){
   // Create setters and getters for attributes
   var api = vjs.Vpaidflash.prototype,
     readWrite = 'preload,defaultPlaybackRate,playbackRate,autoplay,loop,mediaGroup,controller,controls,volume,muted,defaultMuted'.split(','),
-    readOnly = 'error,networkState,readyState,seeking,initialTime,duration,startOffsetTime,paused,played,seekable,ended,videoTracks,audioTracks,width,height'.split(','),
+    readOnly = 'error,networkState,readyState,seeking,initialTime,duration,startOffsetTime,paused,played,ended,videoTracks,audioTracks,width,height'.split(','),
     // Overridden: buffered, currentTime, currentSrc
     i;
 
@@ -362,47 +362,25 @@ vjs.Vpaidflash['checkReady'] = function(tech){
 
 // Trigger events from the swf on the player
 vjs.Vpaidflash['onEvent'] = function(swfID, eventName){
-  var playerEl = vjs.el(swfID);
-  if (!playerEl) {
-    vjs.log.error('vpaidflash', 'unable to find tech ' + swfID);
-    return;
-  }
-  var player = playerEl['player'];
-  if (!player) {
-    vjs.log.error('vpaidflash', 'player not attached to tech ' + swfID);
-    return;
-  }
-  // player.trigger({
-  //   type: eventName,
-  //   arguments: arguments.splice(2)
-  // });
+  var player = vjs.el(swfID)['player'];
   player.trigger(eventName);
 };
 
 // Log errors from the swf
 vjs.Vpaidflash['onError'] = function(swfID, err){
-  var playerEl = vjs.el(swfID);
-  if (!playerEl) {
-    vjs.log.error('vpaidflash', 'unable to find tech ' + swfID);
-    return;
-  }
-  var player = playerEl['player'];
-  if (!player) {
-    vjs.log.error('vpaidflash', 'player not attached to tech ' + swfID);
-    return;
-  }
+  var player = vjs.el(swfID)['player'];
   var msg = 'FLASH: '+err;
 
   if (err == 'srcnotfound') { // jshint ignore:line
     player.error({ code: 4, message: msg });
-    player.trigger('aderror');
+    player.trigger('vasterror');
   } else if (err === 'vpaidcreativetimeout') {
     player.trigger('vasttimeout');
 
   // errors we haven't categorized into the media errors
   } else {
     player.error(msg);
-    player.trigger('aderror');
+    player.trigger('vasterror');
   }
 };
 

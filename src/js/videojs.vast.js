@@ -137,7 +137,7 @@
           tracker.setPaused(true);
         },
         errorFn = function(e) {
-          if (options.debug) { videojs.log('vast', 'tracker', 'aderror', e); }
+          if (options.debug) { videojs.log('vast', 'tracker', 'vasterror', e); }
           // Inform ad server we couldn't play the media file for this ad
           dmvast.util.track(tracker.ad.errorURLTemplates, {ERRORCODE: 405});
           errorOccurred = true;
@@ -151,7 +151,7 @@
           }
         },
         timeoutFn = function(e) {
-          if (options.debug) { videojs.log('vast', 'tracker', 'adtimeout', e); }
+          if (options.debug) { videojs.log('vast', 'tracker', 'vasttimeout', e); }
           // Inform ad server we couldn't play the media file for this ad
           dmvast.util.track(tracker.ad.errorURLTemplates, {ERRORCODE: 402});
           errorOccurred = true;
@@ -928,10 +928,10 @@
 
     // HACK: HTTP 404 on the src will trigger a 'error' event;
     // add hack to convert it to adserror
-    _player.on(['aderror'], function(e) {
-      if (options.debug) { videojs.log.error('vast', 'aderror -> adserror'); }
-      _player.trigger('adserror');
-    });
+    // _player.on(['aderror'], function(e) {
+    //   if (options.debug) { videojs.log.error('vast', 'aderror -> adserror'); }
+    //   _player.trigger('adserror');
+    // });
   }
 
   videojs.plugin('vast', vast);
