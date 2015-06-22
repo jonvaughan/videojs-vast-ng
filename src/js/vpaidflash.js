@@ -371,16 +371,20 @@ vjs.Vpaidflash['onError'] = function(swfID, err){
   var player = vjs.el(swfID)['player'];
   var msg = 'FLASH: '+err;
 
-  if (err == 'srcnotfound') { // jshint ignore:line
-    player.error({ code: 4, message: msg });
-    player.trigger('vasterror');
-  } else if (err === 'vpaidcreativetimeout') {
-    player.trigger('vasttimeout');
+  switch(err) {
+    case 'srcnotfound':
+    case 'vpaidcreativeerror':
+      player.trigger('vasterror');
+      break;
 
-  // errors we haven't categorized into the media errors
-  } else {
-    player.error(msg);
-    player.trigger('vasterror');
+    case 'vpaidcreativetimeout':
+      player.trigger('vasttimeout');
+      break;
+
+    default:
+      player.error(msg);
+      player.trigger('vasterror');
+      break;
   }
 };
 

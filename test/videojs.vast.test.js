@@ -334,16 +334,18 @@
         videojs(videoEl, playerOptions, function() {
           player = this;
 
-          player.one('adserror', function() {
-            player.one('contentplay', function() {
+          player.one('error', function() {
+            player.one(['contentplay', 'contentplayback'], function(e) {
               expect(player.src()).to.match(/test\/media\/small\.mp4$/);
               expect(player.paused()).to.equal(false);
               done();
             });
           });
 
-          player.src(sampleMp4);
-          player.play();
+          setTimeout(function() {
+            player.src(sampleMp4);
+            player.play();
+          });
         });
       });
 

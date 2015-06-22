@@ -12,6 +12,11 @@
 (function(window, document, videojs, dmvast, undefined) {
   'use strict';
 
+  // function stacktrace() {
+  //     var err = new Error();
+  //     return err.stack;
+  // }
+
   function vast(options) {
     // merge in default values
     options = videojs.util.mergeOptions({
@@ -228,7 +233,7 @@
         _player.on(['vastresume', 'adplay'], playFn);
         _player.on(['vastpause', 'adpause'], pauseFn);
         _player.on('adended', endedFn);
-        _player.on('vasterror', errorFn);
+        _player.on(['vasterror', 'aderror'], errorFn);
         _player.on('vasttimeout', timeoutFn);
 
         // Listen for VAST events
@@ -256,7 +261,7 @@
         _player.off(['vastresume', 'adplay'], playFn);
         _player.off(['vastpause', 'adpause'], pauseFn);
         _player.off('adended', endedFn);
-        _player.off('vasterror', errorFn);
+        _player.off(['vasterror', 'aderror'], errorFn);
         _player.off('vasttimeout', timeoutFn);
 
         // Listen for VAST events
@@ -465,12 +470,12 @@
 
       _player.off('adended', _endAd);
 
-      if (!_adbreak) {
-        videojs.log.warn('vast', 'endAd', 'not playing an AD! state: ' + _player.ads.state);
-        return;
-      } else {
-        if (options.debug) { videojs.log('vast', 'endAd', 'adbreak: ', _adbreak); }
-      }
+      // if (!_adbreak) {
+      //   videojs.log.warn('vast', 'endAd', 'not playing an AD! state: ' + _player.ads.state);
+      //   return;
+      // } else {
+      //   if (options.debug) { videojs.log('vast', 'endAd', 'adbreak: ', _adbreak); }
+      // }
 
       _player.off('click', _adClick);
       _removeSkipBtn();
@@ -578,6 +583,14 @@
               if (sources && sources.length) {
                 _sources = sources;
                 foundCreative = true;
+
+                // HACK: Guard against previous tracker still
+                // listening to player events
+                if (_tracker) {
+                  videojs.log.warn('vast', 'loadVAST', 'Previous tracker not unloaded; unloading now!');
+
+                  _tracker.destroyListeners();
+                }
 
                 _tracker = richTracker(new dmvast.tracker(ad, creative));
                 _tracker.initListeners();
@@ -847,10 +860,10 @@
       // e.newValue starting with 'http://...', but Chrome will sometimes fire two contentupdate
       // events from with e.newValue of 'ocean.mp4' and 'http://localhost:9000/ocean.mp4'.
       // This is not an issue if the src paths are absolute paths.
-      if (e.newValue && e.newValue.indexOf('http') !== 0) {
-        videojs.log.warn('duplicate contentupdate! \'' + e.oldValue + '\' to \'' + e.newValue + '\'');
-        return;
-      }
+      // if (e.newValue && e.newValue.indexOf('http') !== 0) {
+      //   videojs.log.warn('VAST-NG: duplicate contentupdate! \'' + e.oldValue + '\' to \'' + e.newValue + '\'');
+      //   return;
+      // }
 
       if (!_player.paused()) {
         _player.vast.requestAdBreak(e);
@@ -925,6 +938,10 @@
       if (options.debug) { videojs.log.warn('force stop stop ad', e.type); }
       _player.vast.ensureLeaveAdBreak(false);
     });
+
+    // _player.on('aderror', function(e) {
+    //   console.log('ERROR ENCOUNTERED: ', e);
+    // });
 
     // HACK: HTTP 404 on the src will trigger a 'error' event;
     // add hack to convert it to adserror

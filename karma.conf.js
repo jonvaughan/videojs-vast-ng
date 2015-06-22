@@ -36,7 +36,7 @@ module.exports = function(config) {
       'src/js/*.js': 'coverage'
     },
 
-    reporters: ['mocha', 'coverage'],
+    reporters: ['mocha'],
 
     coverageReporter: {
       type : 'html',
