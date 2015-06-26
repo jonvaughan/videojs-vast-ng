@@ -219,7 +219,7 @@ vjs.Vpaidflash.prototype.seekable = function() {
 };
 
 vjs.Vpaidflash.prototype.buffered = function(){
-  return vjs.createTimeRange(0, this.el_.vjs_getProperty('buffered'));
+  return vjs.createTimeRange(0, 0);
 };
 
 vjs.Vpaidflash.prototype.supportsFullScreen = function(){

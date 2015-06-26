@@ -545,6 +545,12 @@
       }
 
       _player.on('adended', _endAd);
+
+      // HACK occassionally the loading wheel gets stuck on the screen
+      if (_player.hasClass('vjs-seeking')) {
+        if (options.debug) { videojs.log.warn('force remove css vjs-seeking class'); }
+        _player.removeClass('vjs-seeking');
+      }
       _player.play();
     };
 

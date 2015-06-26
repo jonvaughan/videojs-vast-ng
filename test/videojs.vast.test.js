@@ -5,6 +5,7 @@
   var assert = chai.assert;
   var spy = sinon.spy;
   var match = sinon.match;
+  var fakeServer = sinon.fakeServer;
 
   if (!String.prototype.startsWith) {
     Object.defineProperty(String.prototype, 'startsWith', {
@@ -44,7 +45,7 @@
       eventTrackerServer;
 
     beforeEach(function() {
-      eventTrackerServer = sinon.fakeServer.create();
+      eventTrackerServer = fakeServer.create();
       eventTrackerServer.xhr.useFilters = true;
       eventTrackerServer.xhr.addFilter(function (method, url) {
         var isTracking = !!url.match(/^http\:\/\/localhost\:9876\/tracking/);
@@ -133,10 +134,11 @@
 
     describe('with good VAST tags', function() {
 
-      it('should switch to new preroll when new content updates', function(done) {
-        this.timeout(1000);
+      it.only('should switch to new preroll when new content updates', function(done) {
+        this.timeout(2000);
 
         playerOptions.plugins['vast'] = {
+          debug: true,
           url: localhostMp4Vast,
           customURLHandler: null
         };
@@ -154,7 +156,7 @@
             setTimeout(function() {
               try {
                 expect(player.ads.state).to.equal('ad-playback');
-                vastClientGetSpy.should.have.been.calledWith(
+                vastClientGetSpy.should.have.been.calledWithMatch(
                   match(String.prototype.startsWith, localhostMp4Vast),
                   match.object,
                   match.func);
@@ -182,7 +184,7 @@
                 player.vast.url(localhostMp4Vast2);
                 player.src(sampleWebm);
                 player.play();
-              }, 200);
+              }, 100);
             }, 0);
           });
 
@@ -191,7 +193,7 @@
         });
       });
 
-      it('should play a preroll should fire the proper VAST events', function(done) {
+      it('should play a preroll should fire the proper sequence of VAST events', function(done) {
         var test = this;
         test.timeout(15000);
 
