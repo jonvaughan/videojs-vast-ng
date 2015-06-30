@@ -58,6 +58,8 @@ vjs.Vpaidflash = vjs.MediaTechController.extend({
         }, options['attributes'])
     ;
 
+    videojs.log('flash vpaid object id: ' + objId);
+
     // If source was supplied pass as a flash var.
     if (source) {
       this.ready(function(){

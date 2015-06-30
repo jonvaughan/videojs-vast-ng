@@ -134,7 +134,7 @@
 
     describe('with good VAST tags', function() {
 
-      it.only('should switch to new preroll when new content updates', function(done) {
+      it('should switch to new preroll when new content updates', function(done) {
         this.timeout(2000);
 
         playerOptions.plugins['vast'] = {
